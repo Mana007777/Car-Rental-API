@@ -6,6 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Branch extends Model
 {
+    protected $fillable = [
+        'name',
+        'address',
+        'phone_number',
+        'manager_id'
+    ];
     public function employees()
     {
         return $this->hasMany(Employee::class);

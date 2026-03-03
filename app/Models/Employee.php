@@ -6,6 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
 {
+    protected $fillable = [
+        'user_id',
+        'first_name',
+        'last_name',
+        'email',
+        'phone_number',
+        'position',
+        'branch_id',
+        'hire_date',
+        'salary'
+    ];
     public function branch()
     {
         return $this->belongsTo(Branch::class);
