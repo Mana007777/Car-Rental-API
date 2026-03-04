@@ -15,13 +15,15 @@ class EmployeeController extends Controller
         DB::beginTransaction();
 
         try {
-
             $user = User::create([
                 'name'     => $request->first_name . ' ' . $request->last_name,
                 'email'    => $request->email,
+                'phone_number' => $request->phone_number,
                 'password' => Hash::make($request->password),
                 'role'     => $request->role,
             ]);
+
+            $token = $user->createToken('auth_token')->plainTextToken;
 
             $employee = Employee::create([
                 'user_id'      => $user->id,
@@ -40,6 +42,8 @@ class EmployeeController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'Employee created successfully',
+                'token' => $token,
+                'token_type' => 'Bearer',
                 'data' => [
                     'user' => $user,
                     'employee' => $employee
@@ -47,9 +51,7 @@ class EmployeeController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-
             DB::rollBack();
-
             return response()->json([
                 'status' => false,
                 'message' => 'Employee creation failed',
