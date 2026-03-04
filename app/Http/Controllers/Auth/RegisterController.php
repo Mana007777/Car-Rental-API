@@ -12,54 +12,40 @@ use Illuminate\Support\Facades\Hash;
 class RegisterController extends Controller
 {
     public function register(RegisterRequest $request)
-    {
-        DB::beginTransaction();
+{
+    DB::beginTransaction();
 
-        try {
+    try {
 
-            $user = User::create([
-                'name'     => $request->first_name . ' ' . $request->last_name,
-                'email'    => $request->email,
-                'password' => Hash::make($request->password),
-                'role'     => $request->role,
-            ]);
+        $user = User::create([
+            'name'     => $request->first_name . ' ' . $request->last_name,
+            'email'    => $request->email,
+            'phone_number' => $request->phone_number,
+            'password' => Hash::make($request->password),
+            'role'     => 'customer', 
+        ]);
 
-            $employee = Employee::create([
-                'user_id'      => $user->id,
-                'first_name'   => $request->first_name,
-                'last_name'    => $request->last_name,
-                'email'        => $request->email,
-                'phone_number' => $request->phone_number,
-                'position'     => ucfirst($request->role),
-                'branch_id'    => $request->branch_id,
-                'hire_date'    => now(),
-                'salary'       => $request->salary,
-            ]);
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+        DB::commit();
 
-            DB::commit();
+        return response()->json([
+            'status' => true,
+            'message' => 'Customer registered successfully',
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'data' => $user
+        ], 201);
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Employee registered successfully',
-                'data' => [
-                    'user' => $user,
-                    'employee' => $employee,
-                    'token' => $token,
-                    'token_type' => 'Bearer',
-                ]
-            ], 201);
+    } catch (\Exception $e) {
 
-        } catch (\Exception $e) {
+        DB::rollBack();
 
-            DB::rollBack();
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Registration failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            'status' => false,
+            'message' => 'Registration failed',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 }
