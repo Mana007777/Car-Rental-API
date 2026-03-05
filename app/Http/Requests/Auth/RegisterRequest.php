@@ -30,6 +30,16 @@ class RegisterRequest extends FormRequest
             'password'   => 'required|min:6|confirmed',
         ];
     }
+    public function userData(): array
+    {
+        return [
+            'name'         => $this->first_name . ' ' . $this->last_name,
+            'email'        => $this->email,
+            'phone_number' => $this->phone_number,
+            'password'     => bcrypt($this->password),
+            'role'         => 'customer', 
+        ];
+    }
 
     public function messages(): array
     {
