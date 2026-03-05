@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -6,47 +7,50 @@ use App\Http\Requests\Admin\StoreEmployeeRequest;
 use App\Http\Resources\AdminUserResource;
 use App\Models\User;
 use App\Models\Employee;
+use App\Traits\ApiResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class EmployeeController extends Controller
 {
+    use ApiResponse;
     public function store(StoreEmployeeRequest $request)
-{
-    DB::beginTransaction();
+    {
+        DB::beginTransaction();
 
-    try {
+        try {
 
-        $user = User::create($request->userData());
+            $user = User::create($request->userData());
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken('auth_token')->plainTextToken;
 
-        $employee = Employee::create(
-            $request->employeeData($user->id)
-        );
+            $employee = Employee::create(
+                $request->employeeData($user->id)
+            );
 
-        DB::commit();
+            DB::commit();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Employee created successfully',
-            'token' => $token,
-            'token_type' => 'Bearer',
-            'data' => [
-                'user' => new AdminUserResource($user),
-                'employee' => $employee
-            ]
-        ], 201);
+            return $this->success(
+                'Employee created successfully',
+                [
+                    'user' => new AdminUserResource($user),
+                    'employee' => $employee
+                ],
+                201,
+                [
+                    'token' => $token,
+                    'token_type' => 'Bearer'
+                ]
+            );
+        } catch (\Exception $e) {
 
-    } catch (\Exception $e) {
+            DB::rollBack();
 
-        DB::rollBack();
-
-        return response()->json([
-            'status' => false,
-            'message' => 'Employee creation failed',
-            'error' => $e->getMessage()
-        ], 500);
+            return $this->error(
+                'Employee creation failed',
+                500,
+                $e->getMessage()
+            );
+        }
     }
-}
 }
