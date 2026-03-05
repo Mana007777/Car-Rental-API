@@ -15,15 +15,17 @@ class AdminUserResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'           => $this->id,
-            'first_name'   => $this->first_name,
-            'last_name'    => $this->last_name,
-            'email'        => $this->email,
-            'phone_number' => $this->phone_number,
-            'position'     => $this->position,
-            'branch_id'    => $this->branch_id,
-            'hire_date'    => $this->hire_date,
-            'salary'       => $this->salary,
+            'id'           => $this->employee->id,
+            'first_name'   => $this->employee->first_name,
+            'last_name'    => $this->employee->last_name,
+            'email'        => $this->employee->email,
+            'phone_number' => $this->employee->phone_number,
+            'position'     => $this->employee->position,
+            'branch_id'    => $this->employee->branch_id,
+            'hire_date'    => $this->employee->hire_date,
+            'salary'       => $this->employee->salary,
+            'created_at'   => $this->employee->created_at,
+            'updated_at'   => $this->employee->updated_at,
         ];
     }
 }

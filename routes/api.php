@@ -1,4 +1,5 @@
 <?php
+
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Admin\EmployeeController;
@@ -14,7 +15,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return $request->user();
     });
 
-    Route::middleware('can:create,App\Models\Employee')->group(function () {
-        Route::post('/admin/employees', [EmployeeController::class, 'store']);
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/admin/users', [EmployeeController::class, 'index']);
+        Route::post('/admin/employees', [EmployeeController::class, 'store'])
+            ->middleware('can:create,App\Models\Employee');
     });
 });

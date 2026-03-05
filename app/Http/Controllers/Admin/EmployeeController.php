@@ -8,14 +8,40 @@ use App\Http\Resources\AdminUserResource;
 use App\Models\User;
 use App\Models\Employee;
 use App\Traits\ApiResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class EmployeeController extends Controller
 {
     use ApiResponse;
+
+    public function index(Request $request)
+    {
+        $this->authorize('viewAny', User::class);
+
+        $query = User::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('email', 'LIKE', "%{$search}%")
+                  ->orWhere('phone_number', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $users = $query->latest()->paginate(10);
+
+        return $this->success(
+            'Users retrieved successfully',
+            AdminUserResource::collection($users)
+        );
+    }
+
     public function store(StoreEmployeeRequest $request)
     {
+        
         DB::beginTransaction();
 
         try {
@@ -33,8 +59,7 @@ class EmployeeController extends Controller
             return $this->success(
                 'Employee created successfully',
                 [
-                    'user' => new AdminUserResource($user),
-                    'employee' => $employee
+                    'employee' => new AdminUserResource($user),
                 ],
                 201,
                 [
@@ -42,6 +67,7 @@ class EmployeeController extends Controller
                     'token_type' => 'Bearer'
                 ]
             );
+
         } catch (\Exception $e) {
 
             DB::rollBack();

@@ -11,6 +11,10 @@ class EmployeePolicy
      */
     public function __construct() {}
 
+    public function viewAny(User $user)
+    {
+        return $user->role === 'admin';
+    }
     public function create(User $user)
     {
         return $user->role === 'admin';
