@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Hash;
 
 class StoreEmployeeRequest extends FormRequest
 {
@@ -30,6 +31,32 @@ class StoreEmployeeRequest extends FormRequest
             'branch_id'    => 'required|exists:branches,id',
             'role'         => 'required|in:admin,manager,receptionist,mechanic',
             'salary'       => 'nullable|numeric'
+        ];
+    }
+
+    public function userData()
+    {
+        return [
+            'name' => $this->first_name . ' ' . $this->last_name,
+            'email' => $this->email,
+            'phone_number' => $this->phone_number,
+            'password' => Hash::make($this->password),
+            'role' => $this->role,
+        ];
+    }
+
+    public function employeeData($userId)
+    {
+        return [
+            'user_id' => $userId,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'email' => $this->email,
+            'phone_number' => $this->phone_number,
+            'position' => ucfirst($this->role),
+            'branch_id' => $this->branch_id,
+            'hire_date' => now(),
+            'salary' => $this->salary,
         ];
     }
 
