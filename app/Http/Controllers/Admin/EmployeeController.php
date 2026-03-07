@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Models\Employee;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class EmployeeController extends Controller
 {
@@ -19,70 +18,46 @@ class EmployeeController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $query = User::with('employee');
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%")
-                    ->orWhere('email', 'LIKE', "%{$search}%");
-            });
-        }
-
-        $users = $query->latest()->paginate(10);
+        $users = User::with('employee')
+            ->when($request->search, function ($query, $search) {
+                $query->where('name', 'LIKE', "%{$search}%")
+                      ->orWhere('email', 'LIKE', "%{$search}%");
+            })
+            ->latest()
+            ->paginate(10);
 
         return $this->success(
             'Users retrieved successfully',
             AdminUserResource::collection($users)
         );
     }
+
     public function store(StoreEmployeeRequest $request)
     {
+        $user = User::create($request->userData());
 
-        DB::beginTransaction();
+        Employee::create(
+            $request->employeeData($user->id)
+        );
 
-        try {
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-            $user = User::create($request->userData());
-
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            $employee = Employee::create(
-                $request->employeeData($user->id)
-            );
-
-            DB::commit();
-
-            return $this->success(
-                'Employee created successfully',
-                [
-                    'employee' => new AdminUserResource($user),
-                ],
-                201,
-                [
-                    'token' => $token,
-                    'token_type' => 'Bearer'
-                ]
-            );
-        } catch (\Exception $e) {
-
-            DB::rollBack();
-
-            return $this->error(
-                'Employee creation failed',
-                500,
-                $e->getMessage()
-            );
-        }
+        return $this->success(
+            'Employee created successfully',
+            [
+                'employee' => new AdminUserResource($user),
+            ],
+            201,
+            [
+                'token' => $token,
+                'token_type' => 'Bearer'
+            ]
+        );
     }
+
     public function show($id)
     {
-        $user = User::with('employee')->find($id);
-
-        if (!$user) {
-            return $this->error('User not found', 404);
-        }
+        $user = User::with('employee')->findOrFail($id);
 
         return $this->success(
             'Employee retrieved successfully',

@@ -15,32 +15,18 @@ class RegisterController extends Controller
     use ApiResponse;
     public function register(RegisterRequest $request)
     {
-        DB::beginTransaction();
+        $user = User::create($request->userData());
 
-        try {
-            $user = User::create($request->userData());
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            DB::commit();
-
-            return $this->success(
-                'Registration successful',
-                new UserResource($user),
-                201,
-                [
-                    'token' => $token,
-                    'token_type' => 'Bearer'
-                ]
-            );
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return $this->error(
-                'Registration failed',
-                500,
-                $e->getMessage()
-            );
-        }
+        return $this->success(
+            'Registration successful',
+            new UserResource($user),
+            201,
+            [
+                'token' => $token,
+                'token_type' => 'Bearer'
+            ]
+        );
     }
 }
