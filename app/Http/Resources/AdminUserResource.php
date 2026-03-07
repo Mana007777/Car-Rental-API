@@ -14,15 +14,15 @@ class AdminUserResource extends JsonResource
         return [
             'id' => $this->id,
 
-            'first_name' => $this->employee->first_name ?? null,
-            'last_name'  => $employee?->last_name,
+            'first_name' => $this->employee->first_name ?? $this->first_name,
+            'last_name'  => $employee?->last_name ?? $this->last_name,
             'email' => $this->email,
             'phone_number' => $employee?->phone_number ?? $this->phone_number,
 
-            'position'  => $employee?->position,
-            'branch_id' => $employee?->branch_id,
-            'hire_date' => $employee?->hire_date,
-            'salary'    => $employee?->salary,
+            'position'  => $employee?->position ?? null,
+            'branch_id' => $employee?->branch_id ?? null,
+            'hire_date' => $employee?->hire_date ?? null,
+            'salary'    => $employee?->salary ?? null,
 
             'role' => $this->role,
 

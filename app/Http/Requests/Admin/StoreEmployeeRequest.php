@@ -55,6 +55,7 @@ class StoreEmployeeRequest extends FormRequest
             'phone_number' => $this->phone_number,
             'position' => ucfirst($this->role),
             'branch_id' => $this->branch_id,
+            'role'         => $this->role,
             'hire_date' => now(),
             'salary' => $this->salary,
         ];

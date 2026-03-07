@@ -33,11 +33,12 @@ class RegisterRequest extends FormRequest
     public function userData(): array
     {
         return [
-            'name'         => $this->first_name . ' ' . $this->last_name,
-            'email'        => $this->email,
-            'phone_number' => $this->phone_number,
-            'password'     => bcrypt($this->password),
-            'role'         => 'customer', 
+            'first_name'         => $this->first_name,
+            'last_name'          => $this->last_name,
+            'email'              => $this->email,
+            'phone_number'       => $this->phone_number,
+            'password'           => bcrypt($this->password),
+            'role'               => 'customer',
         ];
     }
 
