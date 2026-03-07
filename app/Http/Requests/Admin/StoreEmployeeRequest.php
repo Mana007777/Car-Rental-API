@@ -37,7 +37,8 @@ class StoreEmployeeRequest extends FormRequest
     public function userData()
     {
         return [
-            'name' => $this->first_name . ' ' . $this->last_name,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
             'email' => $this->email,
             'phone_number' => $this->phone_number,
             'password' => Hash::make($this->password),
@@ -54,6 +55,7 @@ class StoreEmployeeRequest extends FormRequest
             'email' => $this->email,
             'phone_number' => $this->phone_number,
             'position' => ucfirst($this->role),
+            'password' => Hash::make($this->password),
             'branch_id' => $this->branch_id,
             'role'         => $this->role,
             'hire_date' => now(),
