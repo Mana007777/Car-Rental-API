@@ -22,3 +22,4 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('admin/users/{id}', [EmployeeController::class, 'show']);    
     });
 });
+

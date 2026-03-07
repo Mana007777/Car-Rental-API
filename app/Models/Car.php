@@ -6,6 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class Car extends Model
 {
+    protected $fillable = [
+        'name',
+        'model',
+        'year',
+        'vin',
+        'license_plate',
+        'color',
+        'mileage',
+        'status',
+        'rental_rate',
+        'category_id',
+        'insurance_id',
+        'branch_id',
+    ];
     public function rentals()
     {
         return $this->hasMany(Rental::class);
