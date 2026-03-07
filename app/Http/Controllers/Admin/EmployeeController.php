@@ -19,15 +19,14 @@ class EmployeeController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $query = User::query();
+        $query = User::with('employee');
 
         if ($request->filled('search')) {
             $search = $request->search;
 
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('email', 'LIKE', "%{$search}%")
-                  ->orWhere('phone_number', 'LIKE', "%{$search}%");
+                    ->orWhere('email', 'LIKE', "%{$search}%");
             });
         }
 
@@ -38,10 +37,9 @@ class EmployeeController extends Controller
             AdminUserResource::collection($users)
         );
     }
-
     public function store(StoreEmployeeRequest $request)
     {
-        
+
         DB::beginTransaction();
 
         try {
@@ -67,7 +65,6 @@ class EmployeeController extends Controller
                     'token_type' => 'Bearer'
                 ]
             );
-
         } catch (\Exception $e) {
 
             DB::rollBack();
@@ -81,15 +78,14 @@ class EmployeeController extends Controller
     }
     public function show($id)
     {
-        $user = User::with('employee')->find($id); 
+        $user = User::with('employee')->find($id);
 
         if (!$user) {
             return $this->error('User not found', 404);
         }
 
-        $this->authorize('view', $user); 
         return $this->success(
-            'User retrieved successfully',
+            'Employee retrieved successfully',
             new AdminUserResource($user)
         );
     }

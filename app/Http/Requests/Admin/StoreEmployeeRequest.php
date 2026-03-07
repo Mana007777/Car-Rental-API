@@ -27,7 +27,7 @@ class StoreEmployeeRequest extends FormRequest
             'last_name'    => 'required|string|max:255',
             'email'        => 'required|email|unique:users,email',
             'password'     => 'required|min:6',
-            'phone_number' => 'required|unique:employees,phone_number',
+            'phone_number' => 'required|unique:users,phone_number',
             'branch_id'    => 'required|exists:branches,id',
             'role'         => 'required|in:admin,manager,receptionist,mechanic',
             'salary'       => 'nullable|numeric'

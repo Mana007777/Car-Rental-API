@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('email')->unique();
             $table->string('phone_number')->unique();
+            $table->string('password');
             $table->enum('position', ['Manager', 'Receptionist', 'Mechanic', 'Admin'])->default('Receptionist');
             $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete();
             $table->date('hire_date');
