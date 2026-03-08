@@ -3,7 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-
+use Illuminate\Validation\Rule;
 class CarRequest extends FormRequest
 {
     /**
@@ -25,7 +25,12 @@ class CarRequest extends FormRequest
             "name" => "required|string|max:255",
             "model" => "required|string|max:255",
             "year" => "required|integer|min:1886|max:" . date("Y"),
-            "vin" => "required|string|unique:cars,vin|max:255",
+            'vin' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('cars', 'vin')->ignore($this->route('id'))
+            ],
             "license_plate" => "required|string|unique:cars,license_plate|max:255",
             "color" => "nullable|string|max:255",
             "mileage" => "required|integer|min:0",

@@ -16,14 +16,13 @@ class CarController extends Controller
 
     public function index()
     {
-        $cars = Car::all();
+        $cars = Car::with('category')->get();
         return $this->success(CarResource::collection($cars), 'Cars retrieved successfully');
     }
 
     public function show($id)
     {
-        $car = Car::find($id);
-
+        $car = Car::with('category')->find($id);
         if (!$car) {
             return $this->error('Car not found', 404);
         }
@@ -73,7 +72,7 @@ class CarController extends Controller
 
             $car->update($request->validated());
 
-            if ($request->has('category')) {
+            if ($request->filled('category.name')) {
 
                 $car->category->update([
                     'name' => $request->category['name'],

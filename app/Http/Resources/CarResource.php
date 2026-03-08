@@ -20,12 +20,11 @@ class CarResource extends JsonResource
             'mileage' => $this->mileage,
             'status' => $this->status,
             'rental_rate' => $this->rental_rate,
-            'category_id' => $this->category_id,
             'insurance_id' => $this->insurance_id,
             'branch_id' => $this->branch_id,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'category' => new VehicleCategoryResource($this->category),
+            'category' => new VehicleCategoryResource($this->whenLoaded('category')),
         ];
     }
 }
