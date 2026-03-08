@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Car;
 use App\Http\Requests\CarRequest;
 use App\Http\Resources\CarResource;
+use App\Models\User;
 use App\Traits\ApiResponse;
 
 class CarController extends Controller
@@ -20,17 +21,53 @@ class CarController extends Controller
     public function show($id)
     {
         $car = Car::find($id);
+
         if (!$car) {
             return $this->error('Car not found', 404);
         }
+
         $this->authorize('view', $car);
+
         return $this->success(new CarResource($car), 'Car retrieved successfully');
     }
 
     public function store(CarRequest $request)
     {
-        $this->authorize('create', Car::class); 
+        $this->authorize('create', Car::class);
+
         $car = Car::create($request->validated());
+
         return $this->success(new CarResource($car), 'Car created successfully', 201);
+    }
+
+    public function update(CarRequest $request, $id)
+    {
+        $car = Car::find($id);
+
+        if (!$car) {
+            return $this->error('Car not found', 404);
+        }
+
+        $this->authorize('update', $car);
+
+        $car->update($request->validated());
+
+        return $this->success(new CarResource($car), 'Car updated successfully');
+    }
+
+    public function destroy($id)
+    {
+        
+        $car = Car::find($id);
+
+        if (!$car) {
+            return $this->error('Car not found', 404);
+        }
+
+        $this->authorize('delete', $car);
+
+        $car->delete();
+
+        return $this->success(null, 'Car deleted successfully');
     }
 }
