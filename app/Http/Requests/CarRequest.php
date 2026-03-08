@@ -33,14 +33,14 @@ class CarRequest extends FormRequest
             "rental_rate" => "required|numeric|min:0",
             "category_id" => "nullable|exists:vehicle_categories,id",
             "insurance_id" => "nullable|exists:insurances,id",
-            "branch_id" => "nullable|exists:branches,id"
+            "branch_id" => "nullable|exists:branches,id",
+            'category.name' => ['required', 'string', 'max:255'],
+            'category.description' => ['nullable', 'string'],
         ];
     }
     public function carData(): array
     {
-        return [
-            
-        ];
+        return [];
     }
 
     public function messages(): array
