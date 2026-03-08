@@ -6,7 +6,9 @@ use App\Models\Car;
 use App\Http\Requests\CarRequest;
 use App\Http\Resources\CarResource;
 use App\Models\User;
+use App\Models\VehicleCategory;
 use App\Traits\ApiResponse;
+use Illuminate\Support\Facades\DB;
 
 class CarController extends Controller
 {
@@ -35,9 +37,26 @@ class CarController extends Controller
     {
         $this->authorize('create', Car::class);
 
-        $car = Car::create($request->validated());
+        return DB::transaction(function () use ($request) {
 
-        return $this->success(new CarResource($car), 'Car created successfully', 201);
+            $category = VehicleCategory::create([
+                'name' => $request->category['name'],
+                'description' => $request->category['description'] ?? null,
+            ]);
+
+            $car = Car::create([
+                ...$request->carData(),
+                'category_id' => $category->id
+            ]);
+
+            $car->load('category');
+
+            return $this->success(
+                new CarResource($car),
+                'Car created successfully',
+                201
+            );
+        });
     }
 
     public function update(CarRequest $request, $id)
@@ -50,14 +69,30 @@ class CarController extends Controller
 
         $this->authorize('update', $car);
 
-        $car->update($request->validated());
+        return DB::transaction(function () use ($request, $car) {
 
-        return $this->success(new CarResource($car), 'Car updated successfully');
+            $car->update($request->validated());
+
+            if ($request->has('category')) {
+
+                $car->category->update([
+                    'name' => $request->category['name'],
+                    'description' => $request->category['description'] ?? null
+                ]);
+            }
+
+            $car->load('category');
+
+            return $this->success(
+                new CarResource($car),
+                'Car updated successfully'
+            );
+        });
     }
 
     public function destroy($id)
     {
-        
+
         $car = Car::find($id);
 
         if (!$car) {

@@ -40,7 +40,7 @@ class CarRequest extends FormRequest
     }
     public function carData(): array
     {
-        return [];
+        return $this->safe()->except(['category']);
     }
 
     public function messages(): array
