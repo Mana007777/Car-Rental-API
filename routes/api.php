@@ -5,6 +5,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Admin\EmployeeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\LogoutController;
+
 
 Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/login', [LoginController::class, 'login']);
@@ -34,3 +36,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/cars', [\App\Http\Controllers\CarController::class, 'index']);
     Route::get('/cars/{car}', [\App\Http\Controllers\CarController::class, 'show']);
 });
+
+Route::middleware('auth:sanctum')->post('/logout', [LogoutController::class, 'logout']);
