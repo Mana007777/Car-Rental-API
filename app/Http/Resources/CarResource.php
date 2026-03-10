@@ -25,6 +25,7 @@ class CarResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'category' => new VehicleCategoryResource($this->whenLoaded('category')),
+            'branch' => new BranchResource($this->whenLoaded('branch')),
         ];
     }
 }

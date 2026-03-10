@@ -20,6 +20,7 @@ class Car extends Model
         'insurance_id',
         'branch_id',
     ];
+
     public function rentals()
     {
         return $this->hasMany(Rental::class);
