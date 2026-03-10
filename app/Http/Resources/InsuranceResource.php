@@ -12,6 +12,7 @@ class InsuranceResource extends JsonResource
         return [
             'id' => $this->id,
             'company_name' => $this->company_name,
+            'policy_number' => $this->policy_number,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

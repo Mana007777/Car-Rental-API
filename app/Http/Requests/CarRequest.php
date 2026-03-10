@@ -49,6 +49,7 @@ class CarRequest extends FormRequest
             'branch.manager_id' => 'nullable|exists:employees,id',
 
             'insurance.company_name' => 'required|string|max:255',
+            'insurance.policy_number' => 'required|string|max:255',
         ];
     }
 
@@ -107,6 +108,7 @@ class CarRequest extends FormRequest
             'branch.manager_id.exists' => 'Selected branch manager does not exist.',
 
             'insurance.company_name.required' => 'Insurance company name is required.',
+            'insurance.policy_number.required' => 'Insurance policy number is required.',
         ];
     }
 }

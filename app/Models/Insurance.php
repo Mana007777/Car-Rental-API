@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class Insurance extends Model
 {
     protected $fillable = [
-        "company_name",
-
+        'company_name',
+        'policy_number',
     ];
+
     public function cars()
     {
         return $this->hasMany(Car::class);
