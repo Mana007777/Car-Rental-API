@@ -27,6 +27,7 @@ class CarResource extends JsonResource
             'category' => new VehicleCategoryResource($this->whenLoaded('category')),
             'branch' => new BranchResource($this->whenLoaded('branch')),
             'insurance' => new InsuranceResource($this->whenLoaded('insurance')),
+            'maintenances' => MaintenanceResource::collection($this->whenLoaded('maintenances')),
         ];
     }
 }

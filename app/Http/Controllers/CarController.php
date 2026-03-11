@@ -17,7 +17,7 @@ class CarController extends Controller
 
     public function index()
     {
-        $cars = Car::with(['category', 'branch', 'insurance'])->get();
+        $cars = Car::with(['category', 'branch', 'insurance','maintenances.employee'])->get();
 
         return $this->success(
             CarResource::collection($cars),
@@ -27,7 +27,7 @@ class CarController extends Controller
 
     public function show($id)
     {
-        $car = Car::with(['category', 'branch', 'insurance'])->find($id);
+        $car = Car::with(['category', 'branch', 'insurance','maintenances.employee'])->findOrFail($id);
 
         if (!$car) {
             return $this->error('Car not found', 404);

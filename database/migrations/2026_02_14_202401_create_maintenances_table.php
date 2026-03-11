@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('cost', 10, 2)->nullable();
             $table->foreignId('performed_by')->nullable()->constrained('employees')->nullOnDelete();
             $table->timestamps();
-        });
+    });
     }
 
     /**
