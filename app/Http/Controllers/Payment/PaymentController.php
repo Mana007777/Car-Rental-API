@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\Payment;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\Payment\PaymentRequest;
 use App\Models\CarReservation;
 use App\Models\Payment;
@@ -23,7 +22,7 @@ class PaymentController extends Controller
         }
 
         if ($reservation->customer_id !== auth()->id()) {
-            return $this->error('You are not allowed to pay for this reservation', 403);
+            return $this->error('You cannot pay for this reservation', 403);
         }
 
         if (!$reservation->car) {
@@ -37,15 +36,15 @@ class PaymentController extends Controller
         return DB::transaction(function () use ($request, $reservation) {
             $car = $reservation->car;
 
-            $rentalDays = now()->parse($request->rental_start)
-                ->diffInDays(now()->parse($request->rental_end));
+            $days = \Carbon\Carbon::parse($request->rental_start)
+                ->diffInDays(\Carbon\Carbon::parse($request->rental_end));
 
-            $rentalDays = max($rentalDays, 1);
+            $days = max($days, 1);
 
-            $calculatedTotal = $car->rental_rate * $rentalDays;
+            $totalAmount = $car->rental_rate * $days;
 
-            if ((float) $request->amount < (float) $calculatedTotal) {
-                return $this->error('Insufficient payment amount', 422);
+            if ((float) $request->amount < (float) $totalAmount) {
+                return $this->error('Paid amount is less than required rental amount', 422);
             }
 
             $rental = Rental::create([
@@ -56,7 +55,7 @@ class PaymentController extends Controller
                 'rental_start' => $request->rental_start,
                 'rental_end' => $request->rental_end,
                 'actual_return_date' => null,
-                'total_amount' => $calculatedTotal,
+                'total_amount' => $totalAmount,
                 'status' => 'Active',
                 'insurance_option' => $request->insurance_option ?? false,
                 'fuel_level_start' => $request->fuel_level_start ?? 100,
@@ -65,9 +64,9 @@ class PaymentController extends Controller
 
             $payment = Payment::create([
                 'rental_id' => $rental->id,
+                'payment_date' => now()->toDateString(),
                 'amount' => $request->amount,
                 'payment_method' => $request->payment_method,
-                'payment_date' => now(),
                 'status' => 'Completed',
             ]);
 
@@ -79,16 +78,14 @@ class PaymentController extends Controller
                 'status' => 'Confirmed',
             ]);
 
-            $rental->load(['car', 'customer', 'payments']);
-
-            return $this->success(
-                'Payment completed and rental created successfully',
-                [
+            return response()->json([
+                'status' => true,
+                'message' => 'Payment completed and rental created successfully',
+                'data' => [
                     'rental' => $rental,
                     'payment' => $payment,
                 ],
-                201
-            );
+            ], 201);
         });
     }
 }
