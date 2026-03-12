@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Payment;
 
 use App\Http\Requests\Payment\PaymentRequest;
 use App\Models\CarReservation;
@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\Rental;
 use App\Traits\ApiResponse;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
 
 class PaymentController extends Controller
 {
@@ -52,12 +53,12 @@ class PaymentController extends Controller
                 'car_id' => $car->id,
                 'employee_id' => null,
                 'discount_id' => null,
-                'rental_start' => $request->rental_start,
-                'rental_end' => $request->rental_end,
+                'rental_start_date' => $request->rental_start,
+                'rental_end_date' => $request->rental_end,
                 'actual_return_date' => null,
                 'total_amount' => $totalAmount,
-                'status' => 'Active',
-                'insurance_option' => $request->insurance_option ?? false,
+                'status' => 'Ongoing',
+                'insurance_option' => ($request->insurance_option ?? false) ? 'Yes' : 'No',
                 'fuel_level_start' => $request->fuel_level_start ?? 100,
                 'fuel_level_end' => null,
             ]);
