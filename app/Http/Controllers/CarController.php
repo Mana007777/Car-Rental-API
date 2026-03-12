@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Car;
 use App\Models\Branch;
+use App\Models\Discount;
 use App\Models\Insurance;
 use App\Models\VehicleCategory;
 use App\Http\Requests\CarRequest;
@@ -17,27 +18,35 @@ class CarController extends Controller
 
     public function index()
     {
-        $cars = Car::with(['category', 'branch', 'insurance','maintenances.employee'])->get();
+        $cars = Car::with([
+            'category',
+            'branch',
+            'insurance',
+            'maintenances.employee',
+            'discount',
+        ])->get();
 
         return $this->success(
-            CarResource::collection($cars),
-            'Cars retrieved successfully'
+            'Cars retrieved successfully',
+            CarResource::collection($cars)
         );
     }
 
     public function show($id)
     {
-        $car = Car::with(['category', 'branch', 'insurance','maintenances.employee'])->findOrFail($id);
-
-        if (!$car) {
-            return $this->error('Car not found', 404);
-        }
+        $car = Car::with([
+            'category',
+            'branch',
+            'insurance',
+            'maintenances.employee',
+            'discount',
+        ])->findOrFail($id);
 
         $this->authorize('view', $car);
 
         return $this->success(
-            new CarResource($car),
-            'Car retrieved successfully'
+            'Car retrieved successfully',
+            new CarResource($car)
         );
     }
 
@@ -47,23 +56,39 @@ class CarController extends Controller
 
         return DB::transaction(function () use ($request) {
             $category = VehicleCategory::create($request->categoryData());
-
             $branch = Branch::create($request->branchData());
-
             $insurance = Insurance::create($request->insuranceData());
+
+            $discount = null;
+            if ($request->hasDiscountData()) {
+                $discount = Discount::create([
+                    'code' => $request->discountData()['code'],
+                    'description' => $request->discountData()['description'] ?? null,
+                    'discount_percentage' => $request->discountData()['discount_percentage'],
+                    'start_date' => $request->discountData()['start_date'] ?? null,
+                    'end_date' => $request->discountData()['end_date'] ?? null,
+                    'active' => $request->discountData()['active'] ?? true,
+                ]);
+            }
 
             $car = Car::create([
                 ...$request->carData(),
                 'category_id' => $category->id,
                 'branch_id' => $branch->id,
                 'insurance_id' => $insurance->id,
+                'discount_id' => $discount?->id,
             ]);
 
-            $car->load(['category', 'branch', 'insurance']);
+            $car->load([
+                'category',
+                'branch',
+                'insurance',
+                'discount',
+            ]);
 
             return $this->success(
-                new CarResource($car),
                 'Car created successfully',
+                new CarResource($car),
                 201
             );
         });
@@ -71,11 +96,12 @@ class CarController extends Controller
 
     public function update(CarRequest $request, $id)
     {
-        $car = Car::with(['category', 'branch', 'insurance'])->find($id);
-
-        if (!$car) {
-            return $this->error('Car not found', 404);
-        }
+        $car = Car::with([
+            'category',
+            'branch',
+            'insurance',
+            'discount',
+        ])->findOrFail($id);
 
         $this->authorize('update', $car);
 
@@ -103,27 +129,57 @@ class CarController extends Controller
                 $car->update(['insurance_id' => $insurance->id]);
             }
 
-            $car->load(['category', 'branch', 'insurance']);
+            if ($request->hasDiscountData()) {
+                if ($car->discount) {
+                    $car->discount->update([
+                        'code' => $request->discountData()['code'],
+                        'description' => $request->discountData()['description'] ?? null,
+                        'discount_percentage' => $request->discountData()['discount_percentage'],
+                        'start_date' => $request->discountData()['start_date'] ?? null,
+                        'end_date' => $request->discountData()['end_date'] ?? null,
+                        'active' => $request->discountData()['active'] ?? true,
+                    ]);
+                } else {
+                    $discount = Discount::create([
+                        'code' => $request->discountData()['code'],
+                        'description' => $request->discountData()['description'] ?? null,
+                        'discount_percentage' => $request->discountData()['discount_percentage'],
+                        'start_date' => $request->discountData()['start_date'] ?? null,
+                        'end_date' => $request->discountData()['end_date'] ?? null,
+                        'active' => $request->discountData()['active'] ?? true,
+                    ]);
+
+                    $car->update([
+                        'discount_id' => $discount->id,
+                    ]);
+                }
+            }
+
+            $car->load([
+                'category',
+                'branch',
+                'insurance',
+                'discount',
+            ]);
 
             return $this->success(
-                new CarResource($car),
-                'Car updated successfully'
+                'Car updated successfully',
+                new CarResource($car)
             );
         });
     }
 
     public function destroy($id)
     {
-        $car = Car::find($id);
-
-        if (!$car) {
-            return $this->error('Car not found', 404);
-        }
+        $car = Car::findOrFail($id);
 
         $this->authorize('delete', $car);
 
         $car->delete();
 
-        return $this->success(null, 'Car deleted successfully');
+        return $this->success(
+            'Car deleted successfully',
+            null
+        );
     }
 }

@@ -28,6 +28,11 @@ class CarResource extends JsonResource
             'branch' => new BranchResource($this->whenLoaded('branch')),
             'insurance' => new InsuranceResource($this->whenLoaded('insurance')),
             'maintenances' => MaintenanceResource::collection($this->whenLoaded('maintenances')),
+            'discount' => $this->whenLoaded('discount', function () {
+                return $this->discount
+                    ? new DiscountResource($this->discount)
+                    : ['message' => 'No discount assigned'];
+            }, ['message' => 'No discount assigned']),
         ];
     }
 }

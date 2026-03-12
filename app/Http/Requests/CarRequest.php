@@ -14,7 +14,7 @@ class CarRequest extends FormRequest
 
     public function rules(): array
     {
-        $id = $this->route('id');
+        $id = $this->route('car') ?? $this->route('id');
 
         return [
             'name' => 'required|string|max:255',
@@ -50,12 +50,19 @@ class CarRequest extends FormRequest
 
             'insurance.company_name' => 'required|string|max:255',
             'insurance.policy_number' => 'required|string|max:255',
+
+            'discount.code' => 'nullable|string|max:50',
+            'discount.description' => 'nullable|string',
+            'discount.discount_percentage' => 'nullable|numeric|min:0|max:100',
+            'discount.start_date' => 'nullable|date',
+            'discount.end_date' => 'nullable|date|after_or_equal:discount.start_date',
+            'discount.active' => 'nullable|boolean',
         ];
     }
 
     public function carData(): array
     {
-        return $this->safe()->except(['category', 'branch', 'insurance']);
+        return $this->safe()->except(['category', 'branch', 'insurance', 'discount']);
     }
 
     public function categoryData(): array
@@ -71,6 +78,20 @@ class CarRequest extends FormRequest
     public function insuranceData(): array
     {
         return $this->validated()['insurance'] ?? [];
+    }
+
+    public function discountData(): array
+    {
+        return $this->validated()['discount'] ?? [];
+    }
+
+    public function hasDiscountData(): bool
+    {
+        $discount = $this->validated()['discount'] ?? [];
+
+        return !empty($discount)
+            && !empty($discount['code'])
+            && array_key_exists('discount_percentage', $discount);
     }
 
     public function messages(): array
@@ -109,6 +130,11 @@ class CarRequest extends FormRequest
 
             'insurance.company_name.required' => 'Insurance company name is required.',
             'insurance.policy_number.required' => 'Insurance policy number is required.',
+
+            'discount.discount_percentage.numeric' => 'Discount percentage must be a number.',
+            'discount.discount_percentage.min' => 'Discount percentage cannot be negative.',
+            'discount.discount_percentage.max' => 'Discount percentage cannot be greater than 100.',
+            'discount.end_date.after_or_equal' => 'Discount end date must be after or equal to the start date.',
         ];
     }
 }
