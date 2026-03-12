@@ -47,14 +47,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payments', [PaymentController::class, 'store']);
 });
 
-Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+Route::middleware(['auth:sanctum', 'manager'])->group(function () {
     Route::post('/reservations/{id}/approve', [ReservationApprovalController::class, 'approve']);
     Route::post('/reservations/{id}/decline', [ReservationApprovalController::class, 'decline']);
+});
 
     Route::post('/discounts', [DiscountController::class, 'store']);
     Route::put('/discounts/{id}', [DiscountController::class, 'update']);
     Route::delete('/discounts/{id}', [DiscountController::class, 'destroy']);
-});
+
 
 Route::get('cars/{car}/maintenances', [MaintenanceController::class, 'index']);
 Route::post('cars/{car}/maintenances', [MaintenanceController::class, 'store']);

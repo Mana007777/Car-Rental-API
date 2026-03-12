@@ -9,7 +9,7 @@ class CarReservationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return auth()->check();
     }
 
     public function rules(): array
@@ -17,7 +17,10 @@ class CarReservationRequest extends FormRequest
         return [
             'car_id' => ['required', 'exists:cars,id'],
             'reservation_date' => ['required', 'date', 'after_or_equal:today'],
-            'status' => ['nullable', Rule::in(['Pending', 'Confirmed', 'Cancelled', 'Completed'])],
+            'rental_start_date' => ['required', 'date', 'after_or_equal:reservation_date'],
+            'rental_end_date' => ['required', 'date', 'after:rental_start_date'],
+            'insurance_option' => ['nullable', 'boolean'],
+            'status' => ['nullable', Rule::in(['Pending', 'Approved', 'Declined'])],
         ];
     }
 
@@ -29,7 +32,16 @@ class CarReservationRequest extends FormRequest
             'reservation_date.required' => 'Reservation date is required.',
             'reservation_date.date' => 'Reservation date must be a valid date.',
             'reservation_date.after_or_equal' => 'Reservation date cannot be in the past.',
-            'status.in' => 'Status must be one of: Pending, Confirmed, Cancelled, Completed.',
+
+            'rental_start_date.required' => 'Rental start date is required.',
+            'rental_start_date.date' => 'Rental start date must be a valid date.',
+            'rental_start_date.after_or_equal' => 'Rental start date must be on or after reservation date.',
+
+            'rental_end_date.required' => 'Rental end date is required.',
+            'rental_end_date.date' => 'Rental end date must be a valid date.',
+            'rental_end_date.after' => 'Rental end date must be after rental start date.',
+
+            'status.in' => 'Status must be one of: Pending, Approved, Declined.',
         ];
     }
 
@@ -38,7 +50,11 @@ class CarReservationRequest extends FormRequest
         return [
             'car_id' => $this->car_id,
             'reservation_date' => $this->reservation_date,
-            'status' => $this->status ?? 'Pending',
+            'rental_start_date' => $this->rental_start_date,
+            'rental_end_date' => $this->rental_end_date,
+            'insurance_option' => $this->insurance_option ?? false,
+            'status' => 'Pending',
+            'is_paid' => false,
         ];
     }
 }

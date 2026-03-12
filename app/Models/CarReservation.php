@@ -21,8 +21,8 @@ class CarReservation extends Model
         'reservation_date' => 'date',
         'rental_start_date' => 'date',
         'rental_end_date' => 'date',
-        'is_paid' => 'boolean',
         'insurance_option' => 'boolean',
+        'is_paid' => 'boolean',
     ];
 
     public function car()
