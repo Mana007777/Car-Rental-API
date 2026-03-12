@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers\Payment;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Payment\PaymentRequest;
+use App\Http\Resources\PaymentResource;
+use App\Http\Resources\RentalResource;
 use App\Models\CarReservation;
+use App\Models\Employee;
 use App\Models\Payment;
 use App\Models\Rental;
 use App\Traits\ApiResponse;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Controller;
 
 class PaymentController extends Controller
 {
@@ -34,24 +38,30 @@ class PaymentController extends Controller
             return $this->error('This car is not available for rent', 422);
         }
 
-        return DB::transaction(function () use ($request, $reservation) {
-            $car = $reservation->car;
+        $car = $reservation->car;
+        $days = max(
+            Carbon::parse($request->rental_start)
+                ->diffInDays(Carbon::parse($request->rental_end)),
+            1
+        );
 
-            $days = \Carbon\Carbon::parse($request->rental_start)
-                ->diffInDays(\Carbon\Carbon::parse($request->rental_end));
+        $totalAmount = $car->rental_rate * $days;
 
-            $days = max($days, 1);
+        if ((float) $request->amount < (float) $totalAmount) {
+            return $this->error('Paid amount is less than required rental amount', 422);
+        }
 
-            $totalAmount = $car->rental_rate * $days;
+        $employee = $this->resolveEmployee();
 
-            if ((float) $request->amount < (float) $totalAmount) {
-                return $this->error('Paid amount is less than required rental amount', 422);
-            }
+        if (!$employee) {
+            return $this->error('No employee found to assign this rental', 422);
+        }
 
+        [$rental, $payment] = DB::transaction(function () use ($request, $reservation, $car, $employee, $totalAmount) {
             $rental = Rental::create([
                 'customer_id' => auth()->id(),
                 'car_id' => $car->id,
-                'employee_id' => 1,
+                'employee_id' => $employee->id,
                 'discount_id' => null,
                 'rental_start_date' => $request->rental_start,
                 'rental_end_date' => $request->rental_end,
@@ -79,14 +89,23 @@ class PaymentController extends Controller
                 'status' => 'Confirmed',
             ]);
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Payment completed and rental created successfully',
-                'data' => [
-                    'rental' => $rental,
-                    'payment' => $payment,
-                ],
-            ], 201);
+            return [$rental, $payment];
         });
+
+        $rental->load(['car', 'customer', 'employee', 'payments']);
+
+        return $this->success(
+            'Payment completed and rental created successfully',
+            [
+                'rental' => new RentalResource($rental),
+                'payment' => new PaymentResource($payment),
+            ],
+            201
+        );
+    }
+
+    private function resolveEmployee(): ?Employee
+    {
+        return Employee::query()->first();
     }
 }
