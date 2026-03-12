@@ -61,14 +61,7 @@ class CarController extends Controller
 
             $discount = null;
             if ($request->hasDiscountData()) {
-                $discount = Discount::create([
-                    'code' => $request->discountData()['code'],
-                    'description' => $request->discountData()['description'] ?? null,
-                    'discount_percentage' => $request->discountData()['discount_percentage'],
-                    'start_date' => $request->discountData()['start_date'] ?? null,
-                    'end_date' => $request->discountData()['end_date'] ?? null,
-                    'active' => $request->discountData()['active'] ?? true,
-                ]);
+                $discount = Discount::create($request->discountData());
             }
 
             $car = Car::create([
@@ -131,24 +124,9 @@ class CarController extends Controller
 
             if ($request->hasDiscountData()) {
                 if ($car->discount) {
-                    $car->discount->update([
-                        'code' => $request->discountData()['code'],
-                        'description' => $request->discountData()['description'] ?? null,
-                        'discount_percentage' => $request->discountData()['discount_percentage'],
-                        'start_date' => $request->discountData()['start_date'] ?? null,
-                        'end_date' => $request->discountData()['end_date'] ?? null,
-                        'active' => $request->discountData()['active'] ?? true,
-                    ]);
+                    $car->discount->update($request->discountData());
                 } else {
-                    $discount = Discount::create([
-                        'code' => $request->discountData()['code'],
-                        'description' => $request->discountData()['description'] ?? null,
-                        'discount_percentage' => $request->discountData()['discount_percentage'],
-                        'start_date' => $request->discountData()['start_date'] ?? null,
-                        'end_date' => $request->discountData()['end_date'] ?? null,
-                        'active' => $request->discountData()['active'] ?? true,
-                    ]);
-
+                    $discount = Discount::create($request->discountData());
                     $car->update([
                         'discount_id' => $discount->id,
                     ]);

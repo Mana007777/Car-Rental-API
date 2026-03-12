@@ -82,16 +82,29 @@ class CarRequest extends FormRequest
 
     public function discountData(): array
     {
-        return $this->validated()['discount'] ?? [];
+        $discount = $this->validated()['discount'] ?? [];
+
+        if (
+            empty($discount) ||
+            empty($discount['code']) ||
+            !array_key_exists('discount_percentage', $discount)
+        ) {
+            return [];
+        }
+
+        return [
+            'code' => $discount['code'],
+            'description' => $discount['description'] ?? null,
+            'discount_percentage' => $discount['discount_percentage'],
+            'start_date' => $discount['start_date'] ?? null,
+            'end_date' => $discount['end_date'] ?? null,
+            'active' => $discount['active'] ?? true,
+        ];
     }
 
     public function hasDiscountData(): bool
     {
-        $discount = $this->validated()['discount'] ?? [];
-
-        return !empty($discount)
-            && !empty($discount['code'])
-            && array_key_exists('discount_percentage', $discount);
+        return !empty($this->discountData());
     }
 
     public function messages(): array
