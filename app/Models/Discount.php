@@ -25,4 +25,9 @@ class Discount extends Model
     {
         return $this->hasMany(Rental::class);
     }
+
+    public function cars()
+    {
+        return $this->hasMany(Car::class);
+    }
 }

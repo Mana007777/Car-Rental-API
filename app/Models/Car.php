@@ -19,6 +19,7 @@ class Car extends Model
         'category_id',
         'insurance_id',
         'branch_id',
+        'discount_id',
     ];
 
     public function rentals()
@@ -54,5 +55,9 @@ class Car extends Model
     public function reviews()
     {
         return $this->hasMany(CarReview::class);
+    }
+    public function discount()
+    {
+        return $this->belongsTo(Discount::class);
     }
 }

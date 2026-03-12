@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('car_id')->constrained('cars')->cascadeOnDelete();
             $table->foreignId('customer_id')->constrained('users')->cascadeOnDelete();
             $table->date('reservation_date');
-            $table->enum('status', ['Pending', 'Confirmed', 'Cancelled', 'Completed'])->default('Pending');
+            $table->enum('status', ['Pending', 'Approved', 'Declined'])->default('Pending');
             $table->timestamps();
         });
     }
