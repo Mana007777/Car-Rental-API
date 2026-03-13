@@ -53,13 +53,17 @@ Route::middleware(['auth:sanctum', 'manager'])->group(function () {
     Route::post('/reservations/{id}/decline', [ReservationApprovalController::class, 'decline']);
 });
 
+Route::middleware(['auth:sanctum', 'manager'])->group(function () {
     Route::post('/discounts', [DiscountController::class, 'store']);
     Route::put('/discounts/{id}', [DiscountController::class, 'update']);
     Route::delete('/discounts/{id}', [DiscountController::class, 'destroy']);
+});
 
 
-Route::get('cars/{car}/maintenances', [MaintenanceController::class, 'index']);
-Route::post('cars/{car}/maintenances', [MaintenanceController::class, 'store']);
-Route::get('maintenances/{id}', [MaintenanceController::class, 'show']);
-Route::put('maintenances/{id}', [MaintenanceController::class, 'update']);
-Route::delete('maintenances/{id}', [MaintenanceController::class, 'destroy']);
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('cars/{car}/maintenances', [MaintenanceController::class, 'index']);
+    Route::post('cars/{car}/maintenances', [MaintenanceController::class, 'store']);
+    Route::get('maintenances/{id}', [MaintenanceController::class, 'show']);
+    Route::put('maintenances/{id}', [MaintenanceController::class, 'update']);
+    Route::delete('maintenances/{id}', [MaintenanceController::class, 'destroy']);
+});
