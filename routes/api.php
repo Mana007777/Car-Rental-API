@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\ReservationApprovalController;
+use App\Http\Controllers\AuditLogController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LogoutController;
@@ -78,3 +79,8 @@ Route::middleware(['auth:sanctum', 'manager'])->group(function () {
     Route::delete('/admin/branches/{branch}', [BranchController::class, 'destroy']);
 });
 Route::apiResource('fines', FineController::class);
+
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::get('audit-logs', [AuditLogController::class, 'index']);
+    Route::get('audit-logs/{id}', [AuditLogController::class, 'show']);
+});
