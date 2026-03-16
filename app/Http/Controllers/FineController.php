@@ -2,31 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Fine\CreateFineAction;
+use App\Actions\Fine\DeleteFineAction;
+use App\Actions\Fine\ListFinesAction;
+use App\Actions\Fine\ShowFineAction;
+use App\Actions\Fine\UpdateFineAction;
+use App\DTOs\Fine\FineData;
+use App\DTOs\Fine\FineFilterData;
 use App\Http\Requests\FineRequest;
 use App\Http\Resources\FineResource;
-use App\Models\Fine;
-use App\Models\Rental;
 use App\Traits\ApiResponse;
-use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 
 class FineController extends Controller
 {
-    use ApiResponse, Auditable;
+    use ApiResponse;
 
-    public function index(Request $request)
+    public function index(Request $request, ListFinesAction $action)
     {
-        $query = Fine::with('rental')->latest();
-
-        if ($request->filled('paid')) {
-            $query->where('paid', filter_var($request->paid, FILTER_VALIDATE_BOOLEAN));
-        }
-
-        if ($request->filled('rental_id')) {
-            $query->where('rental_id', $request->rental_id);
-        }
-
-        $fines = $query->get();
+        $fines = $action->execute(FineFilterData::fromRequest($request));
 
         return $this->success(
             FineResource::collection($fines),
@@ -34,105 +29,55 @@ class FineController extends Controller
         );
     }
 
-    public function store(FineRequest $request)
+    public function store(FineRequest $request, CreateFineAction $action)
     {
-        $rental = Rental::find($request->rental_id);
+        try {
+            $fine = $action->execute(FineData::fromRequest($request));
 
-        if (!$rental) {
+            return $this->success(
+                new FineResource($fine),
+                'Fine created successfully',
+                201
+            );
+        } catch (ModelNotFoundException) {
             return $this->error('Rental not found', 404);
         }
-
-        $fine = Fine::create($request->fineData());
-        $fine->load('rental');
-
-        $this->logAudit(
-            'created',
-            'fines',
-            $fine->id,
-            'Fine created',
-            null,
-            $fine->toArray()
-        );
-
-        return $this->success(
-            new FineResource($fine),
-            'Fine created successfully',
-            201
-        );
     }
 
-    public function show($id)
+    public function show(int $id, ShowFineAction $action)
     {
-        $fine = Fine::with('rental')->find($id);
-
-        if (!$fine) {
+        try {
+            return $this->success(
+                new FineResource($action->execute($id)),
+                'Fine retrieved successfully'
+            );
+        } catch (ModelNotFoundException) {
             return $this->error('Fine not found', 404);
         }
-
-        return $this->success(
-            new FineResource($fine),
-            'Fine retrieved successfully'
-        );
     }
 
-    public function update(FineRequest $request, $id)
+    public function update(FineRequest $request, int $id, UpdateFineAction $action)
     {
-        $fine = Fine::with('rental')->find($id);
+        try {
+            $fine = $action->execute($id, FineData::fromRequest($request));
 
-        if (!$fine) {
-            return $this->error('Fine not found', 404);
+            return $this->success(
+                new FineResource($fine),
+                'Fine updated successfully'
+            );
+        } catch (ModelNotFoundException) {
+            return $this->error('Fine or rental not found', 404);
         }
-
-        $rental = Rental::find($request->rental_id);
-
-        if (!$rental) {
-            return $this->error('Rental not found', 404);
-        }
-
-        $oldValues = $fine->toArray();
-
-        $fine->update($request->fineData());
-        $fine->load('rental');
-
-        $this->logAudit(
-            'updated',
-            'fines',
-            $fine->id,
-            'Fine updated',
-            $oldValues,
-            $fine->fresh()->toArray()
-        );
-
-        return $this->success(
-            new FineResource($fine),
-            'Fine updated successfully'
-        );
     }
 
-    public function destroy($id)
+    public function destroy(int $id, DeleteFineAction $action)
     {
-        $fine = Fine::find($id);
+        try {
+            $action->execute($id);
 
-        if (!$fine) {
+            return $this->success(null, 'Fine deleted successfully');
+        } catch (ModelNotFoundException) {
             return $this->error('Fine not found', 404);
         }
-
-        $oldValues = $fine->toArray();
-
-        $fine->delete();
-
-        $this->logAudit(
-            'deleted',
-            'fines',
-            $id,
-            'Fine deleted',
-            $oldValues,
-            null
-        );
-
-        return $this->success(
-            null,
-            'Fine deleted successfully'
-        );
     }
 }
