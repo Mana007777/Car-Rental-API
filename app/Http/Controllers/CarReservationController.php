@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 
 class CarReservationController extends Controller
 {
-    use ApiResponse , Auditable;
+    use ApiResponse, Auditable;
 
     public function index(Request $request)
     {
@@ -79,12 +79,20 @@ class CarReservationController extends Controller
 
         $reservation->load(['car.category', 'car.branch', 'customer', 'payments']);
 
+        $this->logAudit(
+            'created',
+            'car_reservations',
+            $reservation->id,
+            'Reservation created',
+            null,
+            $reservation->toArray()
+        );
+
         return $this->success(
             new CarReservationResource($reservation),
             'Reservation created successfully',
             201
         );
-        
     }
 
     public function update(CarReservationRequest $request, $id)
@@ -122,6 +130,8 @@ class CarReservationController extends Controller
             return $this->error('This car is already reserved', 422);
         }
 
+        $oldValues = $reservation->toArray();
+
         $reservation->update([
             ...$request->reservationData(),
             'customer_id' => $reservation->customer_id,
@@ -129,6 +139,15 @@ class CarReservationController extends Controller
         ]);
 
         $reservation->load(['car.category', 'car.branch', 'customer', 'payments']);
+
+        $this->logAudit(
+            'updated',
+            'car_reservations',
+            $reservation->id,
+            'Reservation updated',
+            $oldValues,
+            $reservation->fresh()->toArray()
+        );
 
         return $this->success(
             new CarReservationResource($reservation),
@@ -152,7 +171,18 @@ class CarReservationController extends Controller
             return $this->error('Only pending reservations can be deleted', 422);
         }
 
+        $oldValues = $reservation->toArray();
+
         $reservation->delete();
+
+        $this->logAudit(
+            'deleted',
+            'car_reservations',
+            $id,
+            'Reservation deleted',
+            $oldValues,
+            null
+        );
 
         return $this->success(null, 'Reservation deleted successfully');
     }
