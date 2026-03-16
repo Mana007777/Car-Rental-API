@@ -7,11 +7,12 @@ use App\Http\Resources\CarReservationResource;
 use App\Models\Car;
 use App\Models\CarReservation;
 use App\Traits\ApiResponse;
+use App\Traits\Auditable;
 use Illuminate\Http\Request;
 
 class CarReservationController extends Controller
 {
-    use ApiResponse;
+    use ApiResponse , Auditable;
 
     public function index(Request $request)
     {
@@ -83,6 +84,7 @@ class CarReservationController extends Controller
             'Reservation created successfully',
             201
         );
+        
     }
 
     public function update(CarReservationRequest $request, $id)
