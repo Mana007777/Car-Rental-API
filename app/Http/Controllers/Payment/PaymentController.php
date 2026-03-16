@@ -8,12 +8,13 @@ use App\Http\Resources\PaymentResource;
 use App\Models\CarReservation;
 use App\Models\Payment;
 use App\Traits\ApiResponse;
+use App\Traits\Auditable;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
-    use ApiResponse;
+    use ApiResponse, Auditable;
 
     public function store(PaymentRequest $request)
     {
@@ -55,6 +56,8 @@ class PaymentController extends Controller
             return $this->error('Paid amount is less than required rental amount', 422);
         }
 
+        $oldReservationValues = $reservation->toArray();
+
         $payment = DB::transaction(function () use ($request, $reservation) {
             $payment = Payment::create([
                 'reservation_id' => $reservation->id,
@@ -71,6 +74,24 @@ class PaymentController extends Controller
 
             return $payment;
         });
+
+        $this->logAudit(
+            'paid',
+            'payments',
+            $payment->id,
+            'Reservation payment completed',
+            null,
+            $payment->toArray()
+        );
+
+        $this->logAudit(
+            'updated',
+            'car_reservations',
+            $reservation->id,
+            'Reservation marked as paid',
+            $oldReservationValues,
+            $reservation->fresh()->toArray()
+        );
 
         return $this->success(
             'Payment completed successfully. Waiting for manager approval.',
