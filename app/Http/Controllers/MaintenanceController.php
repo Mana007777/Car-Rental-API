@@ -2,147 +2,90 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Car;
-use App\Models\Maintenance;
-use App\Traits\ApiResponse;
-use App\Traits\Auditable;
+use App\Actions\Maintenance\CreateMaintenanceAction;
+use App\Actions\Maintenance\DeleteMaintenanceAction;
+use App\Actions\Maintenance\GetCarMaintenancesAction;
+use App\Actions\Maintenance\ShowMaintenanceAction;
+use App\Actions\Maintenance\UpdateMaintenanceAction;
+use App\DTOs\Maintenance\MaintenanceData;
 use App\Http\Requests\MaintenanceRequest;
 use App\Http\Resources\MaintenanceResource;
-use Illuminate\Support\Facades\DB;
+use App\Traits\ApiResponse;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class MaintenanceController extends Controller
 {
-    use ApiResponse, Auditable;
+    use ApiResponse;
 
-    public function index($carId)
+    public function index(int $carId, GetCarMaintenancesAction $action)
     {
-        $car = Car::find($carId);
+        try {
+            $maintenances = $action->execute($carId);
 
-        if (!$car) {
+            return $this->success(
+                MaintenanceResource::collection($maintenances),
+                'Maintenances retrieved successfully'
+            );
+        } catch (ModelNotFoundException) {
             return $this->error('Car not found', 404);
         }
-
-        $maintenances = $car->maintenances()
-            ->with('employee')
-            ->latest()
-            ->get();
-
-        return $this->success(
-            MaintenanceResource::collection($maintenances),
-            'Maintenances retrieved successfully'
-        );
     }
 
-    public function store(MaintenanceRequest $request, $carId)
-    {
-        $car = Car::find($carId);
-
-        if (!$car) {
-            return $this->error('Car not found', 404);
-        }
-
-        return DB::transaction(function () use ($request, $car) {
-            $maintenance = $car->maintenances()->create([
-                'maintenance_date' => $request->maintenance_date,
-                'next_due_date' => $request->next_due_date,
-                'maintenance_type' => $request->maintenance_type,
-                'description' => $request->description,
-                'cost' => $request->cost ?? 0,
-                'performed_by' => $request->performed_by,
-            ]);
-
-            $maintenance->load('employee');
-
-            $this->logAudit(
-                'created',
-                'maintenances',
-                $maintenance->id,
-                'Maintenance created',
-                null,
-                $maintenance->toArray()
-            );
+    public function store(
+        MaintenanceRequest $request,
+        int $carId,
+        CreateMaintenanceAction $action
+    ) {
+        try {
+            $maintenance = $action->execute($carId, MaintenanceData::fromRequest($request));
 
             return $this->success(
                 new MaintenanceResource($maintenance),
                 'Maintenance created successfully',
                 201
             );
-        });
+        } catch (ModelNotFoundException) {
+            return $this->error('Car not found', 404);
+        }
     }
 
-    public function show($id)
+    public function show(int $id, ShowMaintenanceAction $action)
     {
-        $maintenance = Maintenance::with(['car', 'employee'])->find($id);
-
-        if (!$maintenance) {
-            return $this->error('Maintenance not found', 404);
-        }
-
-        return $this->success(
-            new MaintenanceResource($maintenance),
-            'Maintenance retrieved successfully'
-        );
-    }
-
-    public function update(MaintenanceRequest $request, $id)
-    {
-        $maintenance = Maintenance::with('employee')->find($id);
-
-        if (!$maintenance) {
-            return $this->error('Maintenance not found', 404);
-        }
-
-        return DB::transaction(function () use ($request, $maintenance) {
-            $oldValues = $maintenance->toArray();
-
-            $maintenance->update([
-                'maintenance_date' => $request->maintenance_date,
-                'next_due_date' => $request->next_due_date,
-                'maintenance_type' => $request->maintenance_type,
-                'description' => $request->description,
-                'cost' => $request->cost ?? 0,
-                'performed_by' => $request->performed_by,
-            ]);
-
-            $maintenance->load('employee');
-
-            $this->logAudit(
-                'updated',
-                'maintenances',
-                $maintenance->id,
-                'Maintenance updated',
-                $oldValues,
-                $maintenance->fresh()->toArray()
+        try {
+            return $this->success(
+                new MaintenanceResource($action->execute($id)),
+                'Maintenance retrieved successfully'
             );
+        } catch (ModelNotFoundException) {
+            return $this->error('Maintenance not found', 404);
+        }
+    }
+
+    public function update(
+        MaintenanceRequest $request,
+        int $id,
+        UpdateMaintenanceAction $action
+    ) {
+        try {
+            $maintenance = $action->execute($id, MaintenanceData::fromRequest($request));
 
             return $this->success(
                 new MaintenanceResource($maintenance),
                 'Maintenance updated successfully'
             );
-        });
-    }
-
-    public function destroy($id)
-    {
-        $maintenance = Maintenance::find($id);
-
-        if (!$maintenance) {
+        } catch (ModelNotFoundException) {
             return $this->error('Maintenance not found', 404);
         }
+    }
 
-        $oldValues = $maintenance->toArray();
+    public function destroy(int $id, DeleteMaintenanceAction $action)
+    {
+        try {
+            $action->execute($id);
 
-        $maintenance->delete();
-
-        $this->logAudit(
-            'deleted',
-            'maintenances',
-            $id,
-            'Maintenance deleted',
-            $oldValues,
-            null
-        );
-
-        return $this->success(null, 'Maintenance deleted successfully');
+            return $this->success(null, 'Maintenance deleted successfully');
+        } catch (ModelNotFoundException) {
+            return $this->error('Maintenance not found', 404);
+        }
     }
 }
