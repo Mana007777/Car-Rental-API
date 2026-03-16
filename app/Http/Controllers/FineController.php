@@ -7,11 +7,12 @@ use App\Http\Resources\FineResource;
 use App\Models\Fine;
 use App\Models\Rental;
 use App\Traits\ApiResponse;
+use App\Traits\Auditable;
 use Illuminate\Http\Request;
 
 class FineController extends Controller
 {
-    use ApiResponse;
+    use ApiResponse, Auditable;
 
     public function index(Request $request)
     {
@@ -43,6 +44,15 @@ class FineController extends Controller
 
         $fine = Fine::create($request->fineData());
         $fine->load('rental');
+
+        $this->logAudit(
+            'created',
+            'fines',
+            $fine->id,
+            'Fine created',
+            null,
+            $fine->toArray()
+        );
 
         return $this->success(
             new FineResource($fine),
@@ -79,8 +89,19 @@ class FineController extends Controller
             return $this->error('Rental not found', 404);
         }
 
+        $oldValues = $fine->toArray();
+
         $fine->update($request->fineData());
         $fine->load('rental');
+
+        $this->logAudit(
+            'updated',
+            'fines',
+            $fine->id,
+            'Fine updated',
+            $oldValues,
+            $fine->fresh()->toArray()
+        );
 
         return $this->success(
             new FineResource($fine),
@@ -96,7 +117,18 @@ class FineController extends Controller
             return $this->error('Fine not found', 404);
         }
 
+        $oldValues = $fine->toArray();
+
         $fine->delete();
+
+        $this->logAudit(
+            'deleted',
+            'fines',
+            $id,
+            'Fine deleted',
+            $oldValues,
+            null
+        );
 
         return $this->success(
             null,
