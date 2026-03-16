@@ -12,6 +12,7 @@ use App\Http\Controllers\CarReservationController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Controllers\DiscountController;
+use App\Http\Controllers\FineController;
 
 Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/login', [LoginController::class, 'login']);
@@ -76,3 +77,4 @@ Route::middleware(['auth:sanctum', 'manager'])->group(function () {
     Route::put('/admin/branches/{branch}', [BranchController::class, 'update']);
     Route::delete('/admin/branches/{branch}', [BranchController::class, 'destroy']);
 });
+Route::apiResource('fines', FineController::class);
