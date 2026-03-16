@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Car;
 use App\Models\Maintenance;
 use App\Traits\ApiResponse;
+use App\Traits\Auditable;
 use App\Http\Requests\MaintenanceRequest;
 use App\Http\Resources\MaintenanceResource;
 use Illuminate\Support\Facades\DB;
 
 class MaintenanceController extends Controller
 {
-    use ApiResponse;
+    use ApiResponse, Auditable;
 
     public function index($carId)
     {
@@ -52,6 +53,15 @@ class MaintenanceController extends Controller
 
             $maintenance->load('employee');
 
+            $this->logAudit(
+                'created',
+                'maintenances',
+                $maintenance->id,
+                'Maintenance created',
+                null,
+                $maintenance->toArray()
+            );
+
             return $this->success(
                 new MaintenanceResource($maintenance),
                 'Maintenance created successfully',
@@ -83,6 +93,8 @@ class MaintenanceController extends Controller
         }
 
         return DB::transaction(function () use ($request, $maintenance) {
+            $oldValues = $maintenance->toArray();
+
             $maintenance->update([
                 'maintenance_date' => $request->maintenance_date,
                 'next_due_date' => $request->next_due_date,
@@ -93,6 +105,15 @@ class MaintenanceController extends Controller
             ]);
 
             $maintenance->load('employee');
+
+            $this->logAudit(
+                'updated',
+                'maintenances',
+                $maintenance->id,
+                'Maintenance updated',
+                $oldValues,
+                $maintenance->fresh()->toArray()
+            );
 
             return $this->success(
                 new MaintenanceResource($maintenance),
@@ -109,7 +130,18 @@ class MaintenanceController extends Controller
             return $this->error('Maintenance not found', 404);
         }
 
+        $oldValues = $maintenance->toArray();
+
         $maintenance->delete();
+
+        $this->logAudit(
+            'deleted',
+            'maintenances',
+            $id,
+            'Maintenance deleted',
+            $oldValues,
+            null
+        );
 
         return $this->success(null, 'Maintenance deleted successfully');
     }
