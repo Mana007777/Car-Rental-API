@@ -10,11 +10,12 @@ use App\Models\VehicleCategory;
 use App\Http\Requests\CarRequest;
 use App\Http\Resources\CarResource;
 use App\Traits\ApiResponse;
+use App\Traits\Auditable;
 use Illuminate\Support\Facades\DB;
 
 class CarController extends Controller
 {
-    use ApiResponse;
+    use ApiResponse, Auditable;
 
     public function index()
     {
@@ -79,6 +80,15 @@ class CarController extends Controller
                 'discount',
             ]);
 
+            $this->logAudit(
+                'created',
+                'cars',
+                $car->id,
+                'Car created',
+                null,
+                $car->toArray()
+            );
+
             return $this->success(
                 'Car created successfully',
                 new CarResource($car),
@@ -99,6 +109,8 @@ class CarController extends Controller
         $this->authorize('update', $car);
 
         return DB::transaction(function () use ($request, $car) {
+            $oldValues = $car->toArray();
+
             $car->update($request->carData());
 
             if ($car->category) {
@@ -140,6 +152,15 @@ class CarController extends Controller
                 'discount',
             ]);
 
+            $this->logAudit(
+                'updated',
+                'cars',
+                $car->id,
+                'Car updated',
+                $oldValues,
+                $car->fresh()->toArray()
+            );
+
             return $this->success(
                 'Car updated successfully',
                 new CarResource($car)
@@ -153,7 +174,18 @@ class CarController extends Controller
 
         $this->authorize('delete', $car);
 
+        $oldValues = $car->toArray();
+
         $car->delete();
+
+        $this->logAudit(
+            'deleted',
+            'cars',
+            $id,
+            'Car deleted',
+            $oldValues,
+            null
+        );
 
         return $this->success(
             'Car deleted successfully',
