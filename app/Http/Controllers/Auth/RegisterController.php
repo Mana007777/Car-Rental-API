@@ -2,29 +2,27 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Auth\RegisterAction;
+use App\DTOs\Auth\RegisterData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\UserResource;
-use App\Models\User;
 use App\Traits\ApiResponse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class RegisterController extends Controller
 {
     use ApiResponse;
-    public function register(RegisterRequest $request)
-    {
-        $user = User::create($request->userData());
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+    public function register(RegisterRequest $request, RegisterAction $action)
+    {
+        $result = $action->execute(RegisterData::fromRequest($request));
 
         return $this->success(
+            new UserResource($result['user']),
             'Registration successful',
-            new UserResource($user),
             201,
             [
-                'token' => $token,
+                'token' => $result['token'],
                 'token_type' => 'Bearer'
             ]
         );

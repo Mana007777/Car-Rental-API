@@ -2,43 +2,26 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Auth\LoginAction;
+use App\DTOs\Auth\LoginData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class LoginController extends Controller
 {
-    public function login(LoginRequest $request)
+    public function login(LoginRequest $request, LoginAction $action)
     {
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user) {
+        try {
+            return response()->json(
+                $action->execute(LoginData::fromRequest($request)),
+                200
+            );
+        } catch (HttpException $e) {
             return response()->json([
                 'status' => false,
-                'message' => 'Invalid credentials.'
-            ], 401);
+                'message' => $e->getMessage(),
+            ], $e->getStatusCode());
         }
-
-        if (!Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid credentials.'
-            ], 401);
-        }
-
-        $user->tokens()->delete();
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Login successful.',
-            'token' => $token,
-            'token_type' => 'Bearer',
-            'data' => [
-                'user' => $user,
-            ]
-        ], 200);
     }
 }

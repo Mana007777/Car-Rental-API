@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Auth\LogoutAction;
 use App\Http\Controllers\Controller;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -9,9 +10,10 @@ use Illuminate\Http\Request;
 class LogoutController extends Controller
 {
     use ApiResponse;
-    public function logout(Request $request)
+
+    public function logout(Request $request, LogoutAction $action)
     {
-        $request->user()->currentAccessToken()->delete();
+        $action->execute($request->user());
 
         return response()->json([
             'status' => true,
