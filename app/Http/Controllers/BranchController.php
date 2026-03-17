@@ -2,44 +2,46 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Branch\CreateBranchAction;
+use App\Actions\Branch\DeleteBranchAction;
+use App\Actions\Branch\ListBranchesAction;
+use App\Actions\Branch\ShowBranchAction;
+use App\Actions\Branch\UpdateBranchAction;
+use App\DTOs\Branch\BranchData;
 use App\Http\Requests\StoreBranchRequest;
 use App\Http\Requests\UpdateBranchRequest;
 use App\Http\Resources\BranchResource;
-use App\Models\Branch;
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class BranchController extends Controller
 {
-    public function index()
+    public function index(ListBranchesAction $action)
     {
-        $branches = Branch::all();
-        return BranchResource::collection($branches);
+        return BranchResource::collection($action->execute());
     }
 
-    public function store(StoreBranchRequest $request)
+    public function store(StoreBranchRequest $request, CreateBranchAction $action)
     {
-        $branch = Branch::create($request->validated());
-
-        return new BranchResource($branch);
+        return new BranchResource(
+            $action->execute(BranchData::fromRequest($request))
+        );
     }
 
-    public function show(string $id)
+    public function show(int $id, ShowBranchAction $action)
     {
-        $branch = Branch::findOrFail($id);
-        return new BranchResource($branch);
+        return new BranchResource($action->execute($id));
     }
 
-    public function update(UpdateBranchRequest $request, Branch $branch)
+    public function update(UpdateBranchRequest $request, int $id, UpdateBranchAction $action)
     {
-        $branch->update($request->validated());
-
-        return new BranchResource($branch);
+        return new BranchResource(
+            $action->execute($id, BranchData::fromRequest($request))
+        );
     }
 
-    public function destroy(string $id)
+    public function destroy(int $id, DeleteBranchAction $action)
     {
-        $branch = Branch::findOrFail($id);
-        $branch->delete();
+        $action->execute($id);
 
         return response()->json([
             'message' => 'Branch deleted successfully'
