@@ -2,199 +2,95 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\CarReservation\CreateReservationAction;
+use App\Actions\CarReservation\DeleteReservationAction;
+use App\Actions\CarReservation\ListMyReservationsAction;
+use App\Actions\CarReservation\ListReservationsAction;
+use App\Actions\CarReservation\ShowReservationAction;
+use App\Actions\CarReservation\UpdateReservationAction;
+use App\DTOs\CarReservation\ReservationData;
+use App\DTOs\CarReservation\ReservationFilterData;
 use App\Http\Requests\CarReservationRequest;
 use App\Http\Resources\CarReservationResource;
-use App\Models\Car;
-use App\Models\CarReservation;
 use App\Traits\ApiResponse;
-use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CarReservationController extends Controller
 {
-    use ApiResponse, Auditable;
+    use ApiResponse;
 
-    public function index(Request $request)
+    public function index(Request $request, ListReservationsAction $action)
     {
-        $query = CarReservation::with(['car.category', 'car.branch', 'customer', 'payments']);
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $reservations = $query->latest()->get();
-
         return $this->success(
-            CarReservationResource::collection($reservations),
+            CarReservationResource::collection($action->execute(ReservationFilterData::fromRequest($request))),
             'Reservations retrieved successfully'
         );
     }
 
-    public function show($id)
+    public function show(int $id, ShowReservationAction $action)
     {
-        $reservation = CarReservation::with(['car.category', 'car.branch', 'customer', 'payments'])->find($id);
-
-        if (!$reservation) {
+        try {
+            return $this->success(
+                new CarReservationResource($action->execute($id)),
+                'Reservation retrieved successfully'
+            );
+        } catch (ModelNotFoundException) {
             return $this->error('Reservation not found', 404);
         }
-
-        return $this->success(
-            new CarReservationResource($reservation),
-            'Reservation retrieved successfully'
-        );
     }
 
-    public function store(CarReservationRequest $request)
+    public function store(CarReservationRequest $request, CreateReservationAction $action)
     {
-        $car = Car::find($request->car_id);
+        try {
+            $reservation = $action->execute(ReservationData::fromRequest($request));
 
-        if (!$car) {
+            return $this->success(
+                new CarReservationResource($reservation),
+                'Reservation created successfully',
+                201
+            );
+        } catch (ModelNotFoundException) {
             return $this->error('Car not found', 404);
+        } catch (HttpException $e) {
+            return $this->error($e->getMessage(), $e->getStatusCode());
         }
-
-        if ($car->status !== 'Available') {
-            return $this->error('This car is not available for reservation', 422);
-        }
-
-        $existingReservation = CarReservation::where('car_id', $request->car_id)
-            ->whereIn('status', ['Pending', 'Approved'])
-            ->where(function ($query) use ($request) {
-                $query->whereBetween('rental_start_date', [$request->rental_start_date, $request->rental_end_date])
-                    ->orWhereBetween('rental_end_date', [$request->rental_start_date, $request->rental_end_date])
-                    ->orWhere(function ($q) use ($request) {
-                        $q->where('rental_start_date', '<=', $request->rental_start_date)
-                            ->where('rental_end_date', '>=', $request->rental_end_date);
-                    });
-            })
-            ->exists();
-
-        if ($existingReservation) {
-            return $this->error('This car is already reserved for the selected dates', 422);
-        }
-
-        $reservation = CarReservation::create([
-            ...$request->reservationData(),
-            'customer_id' => auth()->id(),
-        ]);
-
-        $reservation->load(['car.category', 'car.branch', 'customer', 'payments']);
-
-        $this->logAudit(
-            'created',
-            'car_reservations',
-            $reservation->id,
-            'Reservation created',
-            null,
-            $reservation->toArray()
-        );
-
-        return $this->success(
-            new CarReservationResource($reservation),
-            'Reservation created successfully',
-            201
-        );
     }
 
-    public function update(CarReservationRequest $request, $id)
+    public function update(CarReservationRequest $request, int $id, UpdateReservationAction $action)
     {
-        $reservation = CarReservation::find($id);
+        try {
+            $reservation = $action->execute($id, ReservationData::fromRequest($request));
 
-        if (!$reservation) {
+            return $this->success(
+                new CarReservationResource($reservation),
+                'Reservation updated successfully'
+            );
+        } catch (ModelNotFoundException) {
+            return $this->error('Reservation or car not found', 404);
+        } catch (HttpException $e) {
+            return $this->error($e->getMessage(), $e->getStatusCode());
+        }
+    }
+
+    public function destroy(int $id, DeleteReservationAction $action)
+    {
+        try {
+            $action->execute($id);
+
+            return $this->success(null, 'Reservation deleted successfully');
+        } catch (ModelNotFoundException) {
             return $this->error('Reservation not found', 404);
+        } catch (HttpException $e) {
+            return $this->error($e->getMessage(), $e->getStatusCode());
         }
-
-        if ($reservation->customer_id !== auth()->id()) {
-            return $this->error('Unauthorized', 403);
-        }
-
-        if ($reservation->status !== 'Pending') {
-            return $this->error('Only pending reservations can be updated', 422);
-        }
-
-        $car = Car::find($request->car_id);
-
-        if (!$car) {
-            return $this->error('Car not found', 404);
-        }
-
-        if ($car->status !== 'Available' && $reservation->car_id != $car->id) {
-            return $this->error('This car is not available for reservation', 422);
-        }
-
-        $existingReservation = CarReservation::where('car_id', $request->car_id)
-            ->whereIn('status', ['Pending', 'Approved'])
-            ->where('id', '!=', $reservation->id)
-            ->exists();
-
-        if ($existingReservation) {
-            return $this->error('This car is already reserved', 422);
-        }
-
-        $oldValues = $reservation->toArray();
-
-        $reservation->update([
-            ...$request->reservationData(),
-            'customer_id' => $reservation->customer_id,
-            'is_paid' => $reservation->is_paid,
-        ]);
-
-        $reservation->load(['car.category', 'car.branch', 'customer', 'payments']);
-
-        $this->logAudit(
-            'updated',
-            'car_reservations',
-            $reservation->id,
-            'Reservation updated',
-            $oldValues,
-            $reservation->fresh()->toArray()
-        );
-
-        return $this->success(
-            new CarReservationResource($reservation),
-            'Reservation updated successfully'
-        );
     }
 
-    public function destroy($id)
+    public function myReservations(ListMyReservationsAction $action)
     {
-        $reservation = CarReservation::find($id);
-
-        if (!$reservation) {
-            return $this->error('Reservation not found', 404);
-        }
-
-        if ($reservation->customer_id !== auth()->id()) {
-            return $this->error('Unauthorized', 403);
-        }
-
-        if ($reservation->status !== 'Pending') {
-            return $this->error('Only pending reservations can be deleted', 422);
-        }
-
-        $oldValues = $reservation->toArray();
-
-        $reservation->delete();
-
-        $this->logAudit(
-            'deleted',
-            'car_reservations',
-            $id,
-            'Reservation deleted',
-            $oldValues,
-            null
-        );
-
-        return $this->success(null, 'Reservation deleted successfully');
-    }
-
-    public function myReservations(Request $request)
-    {
-        $reservations = CarReservation::with(['car.category', 'car.branch', 'customer', 'payments'])
-            ->where('customer_id', auth()->id())
-            ->get();
-
         return $this->success(
-            CarReservationResource::collection($reservations),
+            CarReservationResource::collection($action->execute(auth()->id())),
             'Your reservations retrieved successfully'
         );
     }
