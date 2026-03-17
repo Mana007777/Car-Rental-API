@@ -2,101 +2,33 @@
 
 namespace App\Http\Controllers\Payment;
 
+use App\Actions\Payment\CreatePaymentAction;
+use App\DTOs\Payment\PaymentData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payment\PaymentRequest;
 use App\Http\Resources\PaymentResource;
-use App\Models\CarReservation;
-use App\Models\Payment;
 use App\Traits\ApiResponse;
-use App\Traits\Auditable;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class PaymentController extends Controller
 {
-    use ApiResponse, Auditable;
+    use ApiResponse;
 
-    public function store(PaymentRequest $request)
+    public function store(PaymentRequest $request, CreatePaymentAction $action)
     {
-        $reservation = CarReservation::with('car', 'payments')->find($request->reservation_id);
+        try {
+            $payment = $action->execute(PaymentData::fromRequest($request));
 
-        if (!$reservation) {
+            return $this->success(
+                new PaymentResource($payment),
+                'Payment completed successfully. Waiting for manager approval.',
+                201
+            );
+        } catch (ModelNotFoundException) {
             return $this->error('Reservation not found', 404);
+        } catch (HttpException $e) {
+            return $this->error($e->getMessage(), $e->getStatusCode());
         }
-
-        if ($reservation->customer_id !== auth()->id()) {
-            return $this->error('You cannot pay for this reservation', 403);
-        }
-
-        if ($reservation->status !== 'Pending') {
-            return $this->error('Only pending reservations can be paid', 422);
-        }
-
-        if ($reservation->is_paid) {
-            return $this->error('This reservation is already paid', 422);
-        }
-
-        if (!$reservation->car) {
-            return $this->error('Car not found for this reservation', 404);
-        }
-
-        if ($reservation->car->status !== 'Available') {
-            return $this->error('This car is not available', 422);
-        }
-
-        $days = max(
-            Carbon::parse($reservation->rental_start_date)
-                ->diffInDays(Carbon::parse($reservation->rental_end_date)),
-            1
-        );
-
-        $requiredAmount = $reservation->car->rental_rate * $days;
-
-        if ((float) $request->amount < (float) $requiredAmount) {
-            return $this->error('Paid amount is less than required rental amount', 422);
-        }
-
-        $oldReservationValues = $reservation->toArray();
-
-        $payment = DB::transaction(function () use ($request, $reservation) {
-            $payment = Payment::create([
-                'reservation_id' => $reservation->id,
-                'rental_id' => null,
-                'payment_date' => now()->toDateString(),
-                'amount' => $request->amount,
-                'payment_method' => $request->payment_method,
-                'status' => 'Completed',
-            ]);
-
-            $reservation->update([
-                'is_paid' => true,
-            ]);
-
-            return $payment;
-        });
-
-        $this->logAudit(
-            'paid',
-            'payments',
-            $payment->id,
-            'Reservation payment completed',
-            null,
-            $payment->toArray()
-        );
-
-        $this->logAudit(
-            'updated',
-            'car_reservations',
-            $reservation->id,
-            'Reservation marked as paid',
-            $oldReservationValues,
-            $reservation->fresh()->toArray()
-        );
-
-        return $this->success(
-            'Payment completed successfully. Waiting for manager approval.',
-            new PaymentResource($payment),
-            201
-        );
     }
 }
