@@ -2,194 +2,84 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Car;
-use App\Models\Branch;
-use App\Models\Discount;
-use App\Models\Insurance;
-use App\Models\VehicleCategory;
+use App\Actions\Car\CreateCarAction;
+use App\Actions\Car\DeleteCarAction;
+use App\Actions\Car\ListCarsAction;
+use App\Actions\Car\ShowCarAction;
+use App\Actions\Car\UpdateCarAction;
+use App\DTOs\Car\CarData;
 use App\Http\Requests\CarRequest;
 use App\Http\Resources\CarResource;
+use App\Models\Car;
 use App\Traits\ApiResponse;
-use App\Traits\Auditable;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class CarController extends Controller
 {
-    use ApiResponse, Auditable;
+    use ApiResponse;
 
-    public function index()
+    public function index(ListCarsAction $action)
     {
-        $cars = Car::with([
-            'category',
-            'branch',
-            'insurance',
-            'maintenances.employee',
-            'discount',
-        ])->get();
-
         return $this->success(
-            'Cars retrieved successfully',
-            CarResource::collection($cars)
+            CarResource::collection($action->execute()),
+            'Cars retrieved successfully'
         );
     }
 
-    public function show($id)
+    public function show(int $id, ShowCarAction $action)
     {
-        $car = Car::with([
-            'category',
-            'branch',
-            'insurance',
-            'maintenances.employee',
-            'discount',
-        ])->findOrFail($id);
+        try {
+            $car = $action->execute($id);
+            $this->authorize('view', $car);
 
-        $this->authorize('view', $car);
-
-        return $this->success(
-            'Car retrieved successfully',
-            new CarResource($car)
-        );
+            return $this->success(
+                new CarResource($car),
+                'Car retrieved successfully'
+            );
+        } catch (ModelNotFoundException) {
+            return $this->error('Car not found', 404);
+        }
     }
 
-    public function store(CarRequest $request)
+    public function store(CarRequest $request, CreateCarAction $action)
     {
         $this->authorize('create', Car::class);
 
-        return DB::transaction(function () use ($request) {
-            $category = VehicleCategory::create($request->categoryData());
-            $branch = Branch::create($request->branchData());
-            $insurance = Insurance::create($request->insuranceData());
-
-            $discount = null;
-            if ($request->hasDiscountData()) {
-                $discount = Discount::create($request->discountData());
-            }
-
-            $car = Car::create([
-                ...$request->carData(),
-                'category_id' => $category->id,
-                'branch_id' => $branch->id,
-                'insurance_id' => $insurance->id,
-                'discount_id' => $discount?->id,
-            ]);
-
-            $car->load([
-                'category',
-                'branch',
-                'insurance',
-                'discount',
-            ]);
-
-            $this->logAudit(
-                'created',
-                'cars',
-                $car->id,
-                'Car created',
-                null,
-                $car->toArray()
-            );
-
-            return $this->success(
-                'Car created successfully',
-                new CarResource($car),
-                201
-            );
-        });
-    }
-
-    public function update(CarRequest $request, $id)
-    {
-        $car = Car::with([
-            'category',
-            'branch',
-            'insurance',
-            'discount',
-        ])->findOrFail($id);
-
-        $this->authorize('update', $car);
-
-        return DB::transaction(function () use ($request, $car) {
-            $oldValues = $car->toArray();
-
-            $car->update($request->carData());
-
-            if ($car->category) {
-                $car->category->update($request->categoryData());
-            } else {
-                $category = VehicleCategory::create($request->categoryData());
-                $car->update(['category_id' => $category->id]);
-            }
-
-            if ($car->branch) {
-                $car->branch->update($request->branchData());
-            } else {
-                $branch = Branch::create($request->branchData());
-                $car->update(['branch_id' => $branch->id]);
-            }
-
-            if ($car->insurance) {
-                $car->insurance->update($request->insuranceData());
-            } else {
-                $insurance = Insurance::create($request->insuranceData());
-                $car->update(['insurance_id' => $insurance->id]);
-            }
-
-            if ($request->hasDiscountData()) {
-                if ($car->discount) {
-                    $car->discount->update($request->discountData());
-                } else {
-                    $discount = Discount::create($request->discountData());
-                    $car->update([
-                        'discount_id' => $discount->id,
-                    ]);
-                }
-            }
-
-            $car->load([
-                'category',
-                'branch',
-                'insurance',
-                'discount',
-            ]);
-
-            $this->logAudit(
-                'updated',
-                'cars',
-                $car->id,
-                'Car updated',
-                $oldValues,
-                $car->fresh()->toArray()
-            );
-
-            return $this->success(
-                'Car updated successfully',
-                new CarResource($car)
-            );
-        });
-    }
-
-    public function destroy($id)
-    {
-        $car = Car::findOrFail($id);
-
-        $this->authorize('delete', $car);
-
-        $oldValues = $car->toArray();
-
-        $car->delete();
-
-        $this->logAudit(
-            'deleted',
-            'cars',
-            $id,
-            'Car deleted',
-            $oldValues,
-            null
-        );
+        $car = $action->execute(CarData::fromRequest($request));
 
         return $this->success(
-            'Car deleted successfully',
-            null
+            new CarResource($car),
+            'Car created successfully',
+            201
         );
+    }
+
+    public function update(CarRequest $request, int $id, UpdateCarAction $action)
+    {
+        try {
+            $car = $action->execute($id, CarData::fromRequest($request));
+            $this->authorize('update', $car);
+
+            return $this->success(
+                new CarResource($car),
+                'Car updated successfully'
+            );
+        } catch (ModelNotFoundException) {
+            return $this->error('Car not found', 404);
+        }
+    }
+
+    public function destroy(int $id, DeleteCarAction $action)
+    {
+        try {
+            $car = Car::findOrFail($id);
+            $this->authorize('delete', $car);
+
+            $action->execute($id);
+
+            return $this->success(null, 'Car deleted successfully');
+        } catch (ModelNotFoundException) {
+            return $this->error('Car not found', 404);
+        }
     }
 }
