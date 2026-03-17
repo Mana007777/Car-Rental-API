@@ -2,54 +2,35 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\AuditLog\ListAuditLogsAction;
+use App\Actions\AuditLog\ShowAuditLogAction;
+use App\DTOs\AuditLog\AuditLogFilterData;
 use App\Http\Resources\AuditLogResource;
-use App\Models\AuditLog;
 use App\Traits\ApiResponse;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 
 class AuditLogController extends Controller
 {
     use ApiResponse;
 
-    public function index(Request $request)
+    public function index(Request $request, ListAuditLogsAction $action)
     {
-        $query = AuditLog::with('user')->latest('action_date');
-
-        if ($request->filled('table_name')) {
-            $query->where('table_name', $request->table_name);
-        }
-
-        if ($request->filled('action')) {
-            $query->where('action', $request->action);
-        }
-
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->user_id);
-        }
-
-        if ($request->filled('record_id')) {
-            $query->where('record_id', $request->record_id);
-        }
-
-        $logs = $query->paginate(20);
-
         return $this->success(
-            AuditLogResource::collection($logs),
+            AuditLogResource::collection($action->execute(AuditLogFilterData::fromRequest($request))),
             'Audit logs retrieved successfully'
         );
     }
 
-    public function show($id)
+    public function show(int $id, ShowAuditLogAction $action)
     {
-        $log = AuditLog::with('user')->find($id);
-
-        if (!$log) {
+        try {
+            return $this->success(
+                new AuditLogResource($action->execute($id)),
+                'Audit log retrieved successfully'
+            );
+        } catch (ModelNotFoundException) {
             return $this->error('Audit log not found', 404);
         }
-
-        return $this->success(
-            new AuditLogResource($log),
-            'Audit log retrieved successfully'
-        );
     }
 }
