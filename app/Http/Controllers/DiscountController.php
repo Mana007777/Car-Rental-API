@@ -2,81 +2,75 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Discount\CreateDiscountAction;
+use App\Actions\Discount\DeleteDiscountAction;
+use App\Actions\Discount\ListDiscountsAction;
+use App\Actions\Discount\ShowDiscountAction;
+use App\Actions\Discount\UpdateDiscountAction;
+use App\DTOs\Discount\DiscountData;
 use App\Http\Requests\DiscountRequest;
 use App\Http\Requests\UpdateDiscountRequest;
 use App\Http\Resources\DiscountResource;
-use App\Models\Discount;
 use App\Traits\ApiResponse;
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class DiscountController extends Controller
 {
     use ApiResponse;
 
-    public function index()
+    public function index(ListDiscountsAction $action)
     {
-        $discounts = Discount::latest()->get();
-
         return $this->success(
-            'Discounts retrieved successfully',
-            DiscountResource::collection($discounts)
+            DiscountResource::collection($action->execute()),
+            'Discounts retrieved successfully'
         );
     }
 
-    public function store(DiscountRequest $request)
+    public function store(DiscountRequest $request, CreateDiscountAction $action)
     {
-        $discount = Discount::create($request->discountData());
+        $discount = $action->execute(DiscountData::fromRequest($request));
 
         return $this->success(
-            'Discount created successfully',
             new DiscountResource($discount),
+            'Discount created successfully',
             201
         );
     }
 
-    public function show($id)
+    public function show(int $id, ShowDiscountAction $action)
     {
-        $discount = Discount::find($id);
-
-        if (!$discount) {
+        try {
+            return $this->success(
+                new DiscountResource($action->execute($id)),
+                'Discount retrieved successfully'
+            );
+        } catch (ModelNotFoundException) {
             return $this->error('Discount not found', 404);
         }
-
-        return $this->success(
-            'Discount retrieved successfully',
-            new DiscountResource($discount)
-        );
     }
 
-    public function update(UpdateDiscountRequest $request, $id)
+    public function update(UpdateDiscountRequest $request, int $id, UpdateDiscountAction $action)
     {
-        $discount = Discount::find($id);
+        try {
+            $discount = $action->execute($id, DiscountData::fromRequest($request));
 
-        if (!$discount) {
+            return $this->success(
+                new DiscountResource($discount),
+                'Discount updated successfully'
+            );
+        } catch (ModelNotFoundException) {
             return $this->error('Discount not found', 404);
         }
-
-        $discount->update($request->discountData());
-
-        return $this->success(
-            'Discount updated successfully',
-            new DiscountResource($discount)
-        );
     }
 
-    public function destroy($id)
+    public function destroy(int $id, DeleteDiscountAction $action)
     {
-        $discount = Discount::find($id);
+        try {
+            $action->execute($id);
 
-        if (!$discount) {
+            return $this->success(null, 'Discount deleted successfully');
+        } catch (ModelNotFoundException) {
             return $this->error('Discount not found', 404);
         }
-
-        $discount->delete();
-
-        return $this->success(
-            'Discount deleted successfully',
-            null
-        );
     }
 }
