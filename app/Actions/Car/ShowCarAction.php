@@ -2,18 +2,25 @@
 
 namespace App\Actions\Car;
 
+use App\Exceptions\NotFoundException;
 use App\Models\Car;
 
 class ShowCarAction
 {
     public function execute(int $id): Car
     {
-        return Car::with([
+        $car = Car::with([
             'category',
             'branch',
             'insurance',
             'maintenances.employee',
             'discount',
-        ])->findOrFail($id);
+        ])->find($id);
+
+        if (! $car) {
+            throw new NotFoundException('Car not found');
+        }
+
+        return $car;
     }
 }

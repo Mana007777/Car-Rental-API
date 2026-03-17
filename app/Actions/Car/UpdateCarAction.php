@@ -4,6 +4,7 @@ namespace App\Actions\Car;
 
 use App\Actions\AuditLog\CreateAuditLogAction;
 use App\DTOs\Car\CarData;
+use App\Exceptions\NotFoundException;
 use App\Models\Branch;
 use App\Models\Car;
 use App\Models\Discount;
@@ -24,7 +25,11 @@ class UpdateCarAction
             'branch',
             'insurance',
             'discount',
-        ])->findOrFail($id);
+        ])->find($id);
+
+        if (! $car) {
+            throw new NotFoundException('Car not found');
+        }
 
         return DB::transaction(function () use ($car, $data) {
             $oldValues = $car->toArray();

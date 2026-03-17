@@ -12,9 +12,7 @@ class CreateEmployeeAction
     {
         $user = User::create($data->user);
 
-        Employee::create(
-            $data->employee
-        );
+        Employee::create($data->employee);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

@@ -3,7 +3,7 @@
 namespace App\DTOs\Discount;
 
 use Illuminate\Foundation\Http\FormRequest;
-    
+
 class DiscountData
 {
     public function __construct(

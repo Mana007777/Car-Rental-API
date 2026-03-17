@@ -4,9 +4,13 @@ namespace App\Actions\CarReservation;
 
 use App\Actions\AuditLog\CreateAuditLogAction;
 use App\DTOs\CarReservation\ReservationData;
+use App\Exceptions\CarNotAvailableException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ReservationConflictException;
+use App\Exceptions\ReservationNotPendingException;
+use App\Exceptions\UnauthorizedException;
 use App\Models\Car;
 use App\Models\CarReservation;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class UpdateReservationAction
 {
@@ -14,32 +18,41 @@ class UpdateReservationAction
         private readonly CreateAuditLogAction $createAuditLogAction
     ) {}
 
-    public function execute(int $id, ReservationData $data)
+    public function execute(int $id, ReservationData $data): CarReservation
     {
-        $reservation = CarReservation::findOrFail($id);
+        $reservation = CarReservation::find($id);
+
+        if (! $reservation) {
+            throw new NotFoundException('Reservation not found');
+        }
 
         if ($reservation->customer_id !== auth()->id()) {
-            throw new HttpException(403, 'Unauthorized');
+            throw new UnauthorizedException('Unauthorized');
         }
 
         if ($reservation->status !== 'Pending') {
-            throw new HttpException(422, 'Only pending reservations can be updated');
+            throw new ReservationNotPendingException('Only pending reservations can be updated');
         }
 
         $payload = $data->toArray();
-        $car = Car::findOrFail($payload['car_id']);
 
-        if ($car->status !== 'Available' && $reservation->car_id != $car->id) {
-            throw new HttpException(422, 'This car is not available for reservation');
+        $car = Car::find($payload['car_id']);
+
+        if (! $car) {
+            throw new NotFoundException('Car not found');
         }
 
-        $existingReservation = CarReservation::where('car_id', $payload['car_id'])
+        if ($car->status !== 'Available' && $reservation->car_id != $car->id) {
+            throw new CarNotAvailableException('This car is not available for reservation');
+        }
+
+        $exists = CarReservation::where('car_id', $payload['car_id'])
             ->whereIn('status', ['Pending', 'Approved'])
             ->where('id', '!=', $reservation->id)
             ->exists();
 
-        if ($existingReservation) {
-            throw new HttpException(422, 'This car is already reserved');
+        if ($exists) {
+            throw new ReservationConflictException('This car is already reserved');
         }
 
         $oldValues = $reservation->toArray();

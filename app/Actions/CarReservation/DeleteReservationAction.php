@@ -3,8 +3,10 @@
 namespace App\Actions\CarReservation;
 
 use App\Actions\AuditLog\CreateAuditLogAction;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ReservationNotPendingException;
+use App\Exceptions\UnauthorizedException;
 use App\Models\CarReservation;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class DeleteReservationAction
 {
@@ -14,14 +16,18 @@ class DeleteReservationAction
 
     public function execute(int $id): void
     {
-        $reservation = CarReservation::findOrFail($id);
+        $reservation = CarReservation::find($id);
+
+        if (! $reservation) {
+            throw new NotFoundException('Reservation not found');
+        }
 
         if ($reservation->customer_id !== auth()->id()) {
-            throw new HttpException(403, 'Unauthorized');
+            throw new UnauthorizedException('Unauthorized');
         }
 
         if ($reservation->status !== 'Pending') {
-            throw new HttpException(422, 'Only pending reservations can be deleted');
+            throw new ReservationNotPendingException('Only pending reservations can be deleted');
         }
 
         $oldValues = $reservation->toArray();

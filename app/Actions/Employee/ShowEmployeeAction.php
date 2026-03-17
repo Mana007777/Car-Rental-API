@@ -2,12 +2,19 @@
 
 namespace App\Actions\Employee;
 
+use App\Exceptions\NotFoundException;
 use App\Models\User;
 
 class ShowEmployeeAction
 {
     public function execute(int $id): User
     {
-        return User::with('employee')->findOrFail($id);
+        $user = User::with('employee')->find($id);
+
+        if (! $user) {
+            throw new NotFoundException('Employee not found');
+        }
+
+        return $user;
     }
 }

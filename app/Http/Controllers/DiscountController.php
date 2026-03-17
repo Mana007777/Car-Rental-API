@@ -12,7 +12,6 @@ use App\Http\Requests\DiscountRequest;
 use App\Http\Requests\UpdateDiscountRequest;
 use App\Http\Resources\DiscountResource;
 use App\Traits\ApiResponse;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class DiscountController extends Controller
 {
@@ -39,38 +38,29 @@ class DiscountController extends Controller
 
     public function show(int $id, ShowDiscountAction $action)
     {
-        try {
-            return $this->success(
-                new DiscountResource($action->execute($id)),
-                'Discount retrieved successfully'
-            );
-        } catch (ModelNotFoundException) {
-            return $this->error('Discount not found', 404);
-        }
+        return $this->success(
+            new DiscountResource($action->execute($id)),
+            'Discount retrieved successfully'
+        );
     }
 
     public function update(UpdateDiscountRequest $request, int $id, UpdateDiscountAction $action)
     {
-        try {
-            $discount = $action->execute($id, DiscountData::fromRequest($request));
+        $discount = $action->execute($id, DiscountData::fromRequest($request));
 
-            return $this->success(
-                new DiscountResource($discount),
-                'Discount updated successfully'
-            );
-        } catch (ModelNotFoundException) {
-            return $this->error('Discount not found', 404);
-        }
+        return $this->success(
+            new DiscountResource($discount),
+            'Discount updated successfully'
+        );
     }
 
     public function destroy(int $id, DeleteDiscountAction $action)
     {
-        try {
-            $action->execute($id);
+        $action->execute($id);
 
-            return $this->success(null, 'Discount deleted successfully');
-        } catch (ModelNotFoundException) {
-            return $this->error('Discount not found', 404);
-        }
+        return $this->success(
+            null,
+            'Discount deleted successfully'
+        );
     }
 }

@@ -11,7 +11,6 @@ use App\DTOs\Branch\BranchData;
 use App\Http\Requests\StoreBranchRequest;
 use App\Http\Requests\UpdateBranchRequest;
 use App\Http\Resources\BranchResource;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class BranchController extends Controller
 {

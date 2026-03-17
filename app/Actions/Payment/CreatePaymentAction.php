@@ -4,11 +4,16 @@ namespace App\Actions\Payment;
 
 use App\Actions\AuditLog\CreateAuditLogAction;
 use App\DTOs\Payment\PaymentData;
+use App\Exceptions\BusinessLogicException;
+use App\Exceptions\CarNotAvailableException;
+use App\Exceptions\NotFoundException;
+use App\Exceptions\ReservationAlreadyPaidException;
+use App\Exceptions\ReservationNotPendingException;
+use App\Exceptions\UnauthorizedException;
 use App\Models\CarReservation;
 use App\Models\Payment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CreatePaymentAction
 {
@@ -18,26 +23,30 @@ class CreatePaymentAction
 
     public function execute(PaymentData $data): Payment
     {
-        $reservation = CarReservation::with('car', 'payments')->findOrFail($data->reservation_id);
+        $reservation = CarReservation::with('car', 'payments')->find($data->reservation_id);
+
+        if (! $reservation) {
+            throw new NotFoundException('Reservation not found');
+        }
 
         if ($reservation->customer_id !== auth()->id()) {
-            throw new HttpException(403, 'You cannot pay for this reservation');
+            throw new UnauthorizedException('You cannot pay for this reservation');
         }
 
         if ($reservation->status !== 'Pending') {
-            throw new HttpException(422, 'Only pending reservations can be paid');
+            throw new ReservationNotPendingException('Only pending reservations can be paid');
         }
 
         if ($reservation->is_paid) {
-            throw new HttpException(422, 'This reservation is already paid');
+            throw new ReservationAlreadyPaidException('This reservation is already paid');
         }
 
-        if (!$reservation->car) {
-            throw new HttpException(404, 'Car not found for this reservation');
+        if (! $reservation->car) {
+            throw new NotFoundException('Car not found for this reservation');
         }
 
         if ($reservation->car->status !== 'Available') {
-            throw new HttpException(422, 'This car is not available');
+            throw new CarNotAvailableException('This car is not available');
         }
 
         $days = max(
@@ -49,7 +58,7 @@ class CreatePaymentAction
         $requiredAmount = $reservation->car->rental_rate * $days;
 
         if ((float) $data->amount < (float) $requiredAmount) {
-            throw new HttpException(422, 'Paid amount is less than required rental amount');
+            throw new BusinessLogicException('Paid amount is less than required rental amount');
         }
 
         $oldReservationValues = $reservation->toArray();

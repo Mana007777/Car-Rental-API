@@ -3,6 +3,7 @@
 namespace App\Actions\Maintenance;
 
 use App\Actions\AuditLog\CreateAuditLogAction;
+use App\Exceptions\NotFoundException;
 use App\Models\Maintenance;
 
 class DeleteMaintenanceAction
@@ -13,7 +14,12 @@ class DeleteMaintenanceAction
 
     public function execute(int $id): void
     {
-        $maintenance = Maintenance::findOrFail($id);
+        $maintenance = Maintenance::find($id);
+
+        if (! $maintenance) {
+            throw new NotFoundException('Maintenance not found');
+        }
+
         $oldValues = $maintenance->toArray();
 
         $maintenance->delete();

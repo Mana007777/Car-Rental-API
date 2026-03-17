@@ -4,6 +4,7 @@ namespace App\Actions\Fine;
 
 use App\Actions\AuditLog\CreateAuditLogAction;
 use App\DTOs\Fine\FineData;
+use App\Exceptions\NotFoundException;
 use App\Models\Fine;
 use App\Models\Rental;
 
@@ -15,7 +16,11 @@ class CreateFineAction
 
     public function execute(FineData $data): Fine
     {
-        Rental::findOrFail($data->rental_id);
+        $rental = Rental::find($data->rental_id);
+
+        if (! $rental) {
+            throw new NotFoundException('Rental not found');
+        }
 
         $fine = Fine::create($data->toArray());
         $fine->load('rental');

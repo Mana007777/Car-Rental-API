@@ -3,6 +3,7 @@
 namespace App\Actions\Employee;
 
 use App\DTOs\Employee\EmployeeData;
+use App\Exceptions\NotFoundException;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -11,12 +12,16 @@ class UpdateEmployeeAction
 {
     public function execute(int $id, EmployeeData $data): User
     {
-        $user = User::with('employee')->findOrFail($id);
+        $user = User::with('employee')->find($id);
+
+        if (! $user) {
+            throw new NotFoundException('Employee not found');
+        }
 
         $userData = $data->user;
         $employeeData = $data->employee;
 
-        if (isset($userData['password']) && !empty($userData['password'])) {
+        if (isset($userData['password']) && ! empty($userData['password'])) {
             $userData['password'] = Hash::make($userData['password']);
         } else {
             unset($userData['password']);

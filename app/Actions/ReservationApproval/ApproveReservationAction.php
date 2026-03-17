@@ -3,12 +3,14 @@
 namespace App\Actions\ReservationApproval;
 
 use App\Actions\AuditLog\CreateAuditLogAction;
+use App\Exceptions\BusinessLogicException;
+use App\Exceptions\CarNotAvailableException;
+use App\Exceptions\NotFoundException;
 use App\Models\CarReservation;
 use App\Models\Employee;
 use App\Models\Rental;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ApproveReservationAction
 {
@@ -18,28 +20,32 @@ class ApproveReservationAction
 
     public function execute(int $id): array
     {
-        $reservation = CarReservation::with(['car', 'customer', 'payments'])->findOrFail($id);
+        $reservation = CarReservation::with(['car', 'customer', 'payments'])->find($id);
+
+        if (! $reservation) {
+            throw new NotFoundException('Reservation not found');
+        }
 
         if ($reservation->status !== 'Pending') {
-            throw new HttpException(422, 'Only pending reservations can be approved');
+            throw new BusinessLogicException('Only pending reservations can be approved');
         }
 
-        if (!$reservation->is_paid) {
-            throw new HttpException(422, 'Reservation must be paid before approval');
+        if (! $reservation->is_paid) {
+            throw new BusinessLogicException('Reservation must be paid before approval');
         }
 
-        if (!$reservation->car) {
-            throw new HttpException(404, 'Car not found');
+        if (! $reservation->car) {
+            throw new NotFoundException('Car not found');
         }
 
         if ($reservation->car->status !== 'Available') {
-            throw new HttpException(422, 'Car is not available');
+            throw new CarNotAvailableException('Car is not available');
         }
 
         $employee = Employee::query()->first();
 
-        if (!$employee) {
-            throw new HttpException(422, 'No employee found to assign this rental');
+        if (! $employee) {
+            throw new BusinessLogicException('No employee found to assign this rental');
         }
 
         [$reservation, $rental] = DB::transaction(function () use ($reservation, $employee) {

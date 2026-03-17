@@ -3,6 +3,7 @@
 namespace App\Actions\Car;
 
 use App\Actions\AuditLog\CreateAuditLogAction;
+use App\Exceptions\NotFoundException;
 use App\Models\Car;
 
 class DeleteCarAction
@@ -13,7 +14,12 @@ class DeleteCarAction
 
     public function execute(int $id): void
     {
-        $car = Car::findOrFail($id);
+        $car = Car::find($id);
+
+        if (! $car) {
+            throw new NotFoundException('Car not found');
+        }
+
         $oldValues = $car->toArray();
 
         $car->delete();

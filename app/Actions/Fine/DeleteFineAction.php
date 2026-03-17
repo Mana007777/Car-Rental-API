@@ -3,6 +3,7 @@
 namespace App\Actions\Fine;
 
 use App\Actions\AuditLog\CreateAuditLogAction;
+use App\Exceptions\NotFoundException;
 use App\Models\Fine;
 
 class DeleteFineAction
@@ -13,7 +14,12 @@ class DeleteFineAction
 
     public function execute(int $id): void
     {
-        $fine = Fine::findOrFail($id);
+        $fine = Fine::find($id);
+
+        if (! $fine) {
+            throw new NotFoundException('Fine not found');
+        }
+
         $oldValues = $fine->toArray();
 
         $fine->delete();

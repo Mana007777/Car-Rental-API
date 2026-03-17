@@ -3,9 +3,9 @@
 namespace App\Actions\Auth;
 
 use App\DTOs\Auth\LoginData;
+use App\Exceptions\UnauthorizedException;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class LoginAction
 {
@@ -13,8 +13,8 @@ class LoginAction
     {
         $user = User::where('email', $data->email)->first();
 
-        if (!$user || !Hash::check($data->password, $user->password)) {
-            throw new HttpException(401, 'Invalid credentials.');
+        if (! $user || ! Hash::check($data->password, $user->password)) {
+            throw new UnauthorizedException('Invalid credentials.');
         }
 
         $user->tokens()->delete();

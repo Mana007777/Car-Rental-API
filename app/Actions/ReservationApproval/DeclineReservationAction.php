@@ -3,8 +3,9 @@
 namespace App\Actions\ReservationApproval;
 
 use App\Actions\AuditLog\CreateAuditLogAction;
+use App\Exceptions\BusinessLogicException;
+use App\Exceptions\NotFoundException;
 use App\Models\CarReservation;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class DeclineReservationAction
 {
@@ -14,10 +15,14 @@ class DeclineReservationAction
 
     public function execute(int $id): CarReservation
     {
-        $reservation = CarReservation::with(['car', 'customer', 'payments'])->findOrFail($id);
+        $reservation = CarReservation::with(['car', 'customer', 'payments'])->find($id);
+
+        if (! $reservation) {
+            throw new NotFoundException('Reservation not found');
+        }
 
         if ($reservation->status !== 'Pending') {
-            throw new HttpException(422, 'Only pending reservations can be declined');
+            throw new BusinessLogicException('Only pending reservations can be declined');
         }
 
         $oldValues = $reservation->toArray();
