@@ -1,9 +1,12 @@
 <?php
 
-use App\Http\Middleware\AdminMiddlware;
+use App\Exceptions\ApiException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Throwable;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,12 +15,38 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias([
-            'admin' => AdminMiddlware::class,
-            'manager' => \App\Http\Middleware\ManagerMiddleware::class,
-        ]);
-    })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withMiddleware(function (Middleware $middleware) {
         //
+    })
+    ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->render(function (ApiException $e, $request) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], $e->statusCode());
+        });
+
+        $exceptions->render(function (ModelNotFoundException $e, $request) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Resource not found.',
+            ], 404);
+        });
+
+        $exceptions->render(function (HttpExceptionInterface $e, $request) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage() ?: 'HTTP error.',
+            ], $e->getStatusCode());
+        });
+
+        $exceptions->render(function (Throwable $e, $request) {
+            report($e);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Server error.',
+            ], 500);
+        });
     })->create();
