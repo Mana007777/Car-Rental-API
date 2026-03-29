@@ -43,20 +43,13 @@ class UpdateEmployeeRequest extends FormRequest
         ])->toArray();
     }
 
-    public function employeeData($userId): array
-    {
-        return array_merge(
-            collect($this->validated())->only([
-                'first_name',
-                'last_name',
-                'email',
-                'password',
-                'phone_number',
-                'position',
-                'branch_id',
-                'hire_date',
-                'salary',
-            ])->toArray()
-        );
-    }
+    public function employeeData(): array
+{
+    return collect($this->validated())->only([
+        'position',
+        'branch_id',
+        'hire_date',
+        'salary',
+    ])->toArray();
+}
 }
