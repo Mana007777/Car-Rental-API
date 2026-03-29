@@ -46,7 +46,6 @@ class UpdateEmployeeRequest extends FormRequest
     public function employeeData($userId): array
     {
         return array_merge(
-            ['user_id' => $userId],
             collect($this->validated())->only([
                 'first_name',
                 'last_name',

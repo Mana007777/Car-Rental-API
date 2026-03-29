@@ -21,7 +21,7 @@ class UpdateEmployeeAction
         $userData = $data->user;
         $employeeData = $data->employee;
 
-        if (isset($userData['password']) && ! empty($userData['password'])) {
+        if (!empty($userData['password'])) {
             $userData['password'] = Hash::make($userData['password']);
         } else {
             unset($userData['password']);
@@ -32,7 +32,7 @@ class UpdateEmployeeAction
         if ($user->employee) {
             $user->employee->update($employeeData);
         } else {
-            Employee::create($employeeData);
+            $user->employee()->create($employeeData);
         }
 
         return $user->fresh('employee');

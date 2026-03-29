@@ -15,7 +15,7 @@ class EmployeeData
     {
         return new self(
             user: $request->userData(),
-            employee: $request->employeeData(), 
+            employee: $request->employeeData(),
         );
     }
 }
