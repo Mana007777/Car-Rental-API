@@ -34,21 +34,21 @@ class EmployeeController extends Controller
     }
 
     public function store(StoreEmployeeRequest $request, CreateEmployeeAction $action)
-{
-    $result = $action->execute(EmployeeData::fromRequest($request), $request);
+    {
+        $result = $action->execute(EmployeeData::fromRequest($request), $request);
 
-    return $this->success(
-        [
-            'employee' => new AdminUserResource($result['user']),
-        ],
-        'Employee created successfully',
-        201,
-        [
-            'token' => $result['token'],
-            'token_type' => 'Bearer'
-        ]
-    );
-}
+        return $this->success(
+            [
+                'employee' => new AdminUserResource($result['user']),
+            ],
+            'Employee created successfully',
+            201,
+            [
+                'token' => $result['token'],
+                'token_type' => 'Bearer'
+            ]
+        );
+    }
 
     public function show(int $id, ShowEmployeeAction $action)
     {
