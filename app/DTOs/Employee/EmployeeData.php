@@ -15,7 +15,7 @@ class EmployeeData
     {
         return new self(
             user: $request->userData(),
-            employee: $request->employeeData($userId ?? 0),
+            employee: $userId ? $request->employeeData($userId) : [],
         );
     }
-}
+}   

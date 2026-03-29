@@ -5,20 +5,26 @@ namespace App\Actions\Employee;
 use App\DTOs\Employee\EmployeeData;
 use App\Models\Employee;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class CreateEmployeeAction
 {
-    public function execute(EmployeeData $data): array
+    public function execute(EmployeeData $data)
     {
+        DB::beginTransaction();
+
         $user = User::create($data->user);
 
-        Employee::create($data->employee);
+        $employeeData = $data->employee;
+        $employeeData['user_id'] = $user->id;
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        Employee::create($employeeData);
+
+        DB::commit();
 
         return [
-            'user' => $user->load('employee'),
-            'token' => $token,
+            'user' => $user,
+            'token' => auth()->login($user),
         ];
     }
 }
