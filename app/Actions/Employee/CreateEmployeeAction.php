@@ -6,25 +6,26 @@ use App\DTOs\Employee\EmployeeData;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class CreateEmployeeAction
 {
-    public function execute(EmployeeData $data)
+    public function execute(EmployeeData $data, $request): array
     {
-        DB::beginTransaction();
+        return DB::transaction(function () use ($data, $request) {
+            $user = User::create($data->user);
 
-        $user = User::create($data->user);
+            $employee = Employee::create(
+                $request->employeeData($user->id)
+            );
 
-        $employeeData = $data->employee;
-        $employeeData['user_id'] = $user->id;
+            $token = JWTAuth::fromUser($user);
 
-        Employee::create($employeeData);
-
-        DB::commit();
-
-        return [
-            'user' => $user,
-            'token' => auth()->login($user),
-        ];
+            return [
+                'user' => $user,
+                'employee' => $employee,
+                'token' => $token,
+            ];
+        });
     }
 }
