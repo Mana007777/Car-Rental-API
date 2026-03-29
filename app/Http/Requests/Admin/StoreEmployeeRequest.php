@@ -7,19 +7,11 @@ use Illuminate\Support\Facades\Hash;
 
 class StoreEmployeeRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return auth()->check() && auth()->user()->role === 'admin';
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
@@ -30,36 +22,35 @@ class StoreEmployeeRequest extends FormRequest
             'phone_number' => 'required|unique:users,phone_number',
             'branch_id'    => 'required|exists:branches,id',
             'role'         => 'required|in:admin,manager,receptionist,mechanic',
-            'salary'       => 'nullable|numeric'
+            'salary'       => 'nullable|numeric',
         ];
     }
 
-    public function userData()
+    public function userData(): array
     {
         return [
-            'first_name' => $this->first_name,
-            'last_name' => $this->last_name,
-            'email' => $this->email,
+            'first_name'   => $this->first_name,
+            'last_name'    => $this->last_name,
+            'email'        => $this->email,
             'phone_number' => $this->phone_number,
-            'password' => Hash::make($this->password),
-            'role' => $this->role,
-        ];
-    }
-
-    public function employeeData($userId)
-    {
-        return [
-            'user_id' => $userId,
-            'first_name' => $this->first_name,
-            'last_name' => $this->last_name,
-            'email' => $this->email,
-            'phone_number' => $this->phone_number,
-            'position' => ucfirst($this->role),
-            'password' => Hash::make($this->password),
-            'branch_id' => $this->branch_id,
+            'password'     => Hash::make($this->password),
             'role'         => $this->role,
-            'hire_date' => now(),
-            'salary' => $this->salary,
+        ];
+    }
+
+    public function employeeData(int $userId): array
+    {
+        return [
+            'user_id'       => $userId,
+            'first_name'    => $this->first_name,
+            'last_name'     => $this->last_name,
+            'email'         => $this->email,
+            'phone_number'  => $this->phone_number,
+            'position'      => ucfirst($this->role),
+            'branch_id'     => $this->branch_id,
+            'role'          => $this->role,
+            'hire_date'     => now(),
+            'salary'        => $this->salary,
         ];
     }
 
@@ -79,7 +70,7 @@ class StoreEmployeeRequest extends FormRequest
             'branch_id.exists' => 'Branch ID must exist in branches table.',
             'role.required' => 'Role is required.',
             'role.in' => 'Role must be one of: admin, manager, receptionist, mechanic.',
-            'salary.numeric' => 'Salary must be a numeric value.'
+            'salary.numeric' => 'Salary must be a numeric value.',
         ];
     }
 }
