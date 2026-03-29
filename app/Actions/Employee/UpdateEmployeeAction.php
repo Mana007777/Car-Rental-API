@@ -4,7 +4,6 @@ namespace App\Actions\Employee;
 
 use App\DTOs\Employee\EmployeeData;
 use App\Exceptions\NotFoundException;
-use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -21,7 +20,7 @@ class UpdateEmployeeAction
         $userData = $data->user;
         $employeeData = $data->employee;
 
-        if (!empty($userData['password'])) {
+        if (! empty($userData['password'])) {
             $userData['password'] = Hash::make($userData['password']);
         } else {
             unset($userData['password']);
