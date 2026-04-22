@@ -38,10 +38,9 @@ class StoreEmployeeRequest extends FormRequest
         ];
     }
 
-    public function employeeData(int $userId): array
+    public function employeeData(?int $userId = null): array
     {
-        return [
-            'user_id'      => $userId,
+        $data = [
             'first_name'   => $this->first_name,
             'last_name'    => $this->last_name,
             'email'        => $this->email,
@@ -52,6 +51,12 @@ class StoreEmployeeRequest extends FormRequest
             'hire_date'    => now(),
             'salary'       => $this->salary,
         ];
+
+        if ($userId !== null) {
+            $data['user_id'] = $userId;
+        }
+
+        return $data;
     }
 
     public function messages(): array

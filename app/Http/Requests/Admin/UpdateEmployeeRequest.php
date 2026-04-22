@@ -43,7 +43,7 @@ class UpdateEmployeeRequest extends FormRequest
         ])->toArray();
     }
 
-    public function employeeData(): array
+    public function employeeData(?int $userId = null): array
 {
     return collect($this->validated())->only([
         'position',

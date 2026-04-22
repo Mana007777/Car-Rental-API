@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\AdminMiddlware;
+use App\Http\Middleware\ManagerMiddleware;
 use App\Exceptions\ApiException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -16,7 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->alias([
+            'manager' => ManagerMiddleware::class,
+            'admin' => AdminMiddlware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (ApiException $e, $request) {

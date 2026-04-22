@@ -11,11 +11,11 @@ class EmployeeData
         public readonly array $employee,
     ) {}
 
-    public static function fromRequest(FormRequest $request): self
+    public static function fromRequest(FormRequest $request, ?int $userId = null): self
     {
         return new self(
             user: $request->userData(),
-            employee: $request->employeeData(),
+            employee: $request->employeeData($userId),
         );
     }
 }
